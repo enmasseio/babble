@@ -1,15 +1,20 @@
 {
   "name": "babble",
-  "version": "0.0.1",
-  "description": "Conversations over pubsub. Tell, ask, reply",
+  "version": "0.1.0",
+  "description": "Distributed conversations over pubsub. Tell, ask, reply",
   "author": "Jos de Jong <wjosdejong@gmail.com> (https://github.com/josdejong)",
   "keywords": [
     "pubsub",
     "conversation",
     "talk"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/josdejong/babble.git"
+  },
   "dependencies": {
-    "pubsub-js": "~1.4.0"
+    "pubsub-js": "~1.4.0",
+    "node-uuid": "~1.4.1"
   },
   "devDependencies": {
     "mocha": "latest"
