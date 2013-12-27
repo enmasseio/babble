@@ -2,7 +2,6 @@ var assert = require('assert'),
     Babbler = require('../lib/Babbler');
 
 describe('Babbler', function() {
-  // TODO: have an instantiated pub/sub solution
 
   it('should create a babbler', function() {
     var emma = new Babbler('emma0');
