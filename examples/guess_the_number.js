@@ -6,45 +6,46 @@ var MIN = 0,
 var emma = babble.babbler('emma'),
     jack = babble.babbler('jack');
 
-emma.listen('lets play guess the number', function () {
+emma.onMessage('lets play guess the number', function () {
   // choose a random value
-  var number = randomInt(MIN, MAX);
+  this.number = randomInt(MIN, MAX);
 
   console.log('emma: ok I have a number in mind between ' + MIN + ' and ' + MAX);
-  this.reply('ok', function test (guess) {
-    var answer = (guess < number) ? 'higher' :
-        (guess > number) ? 'lower' : 'right';
-    console.log('emma: ' + answer);
-    this.reply(answer, test);
-  });
+  return 'ok';
+}).onMessage({repeat: true}, function (guess) {
+  var answer = (guess < this.number) ? 'higher' :
+      (guess > this.number) ? 'lower' : 'right';
+  console.log('emma: ' + answer);
+  return answer;
 });
 
-jack.ask('emma', 'lets play guess the number', function (answer) {
+jack.ask('emma', 'lets play guess the number').onMessage(function (answer) {
   if (answer == 'ok') {
-    var lower = MIN;
-    var upper = MAX;
-    var number = randomInt(lower, upper);
+    this.lower = MIN;
+    this.upper = MAX;
+    this.number = randomInt(lower, upper);
 
-    console.log('jack: guessing ' + number + '...');
-    this.reply(number, function guess (answer) {
-      if (answer == 'higher') {
-        lower = number + 1;
+    console.log('jack: guessing ' + this.number + '...');
+    return this.number;
+  }
+  // TODO: how to do a conditional onMessage?
+}).onMessage({repeat: true}, function (answer) {
+  if (answer == 'higher') {
+    this.lower = this.number + 1;
 
-        number = randomInt(lower, upper);
-        console.log('jack: guessing ' + number + '...');
-        this.reply(number, guess);
-      }
-      else if (answer == 'lower') {
-        upper = number - 1;
+    this.number = randomInt(lower, upper);
+    console.log('jack: guessing ' + this.number + '...');
+    return this.number;
+  }
+  else if (answer == 'lower') {
+    this.upper = this.number - 1;
 
-        number = randomInt(lower, upper);
-        console.log('jack: guessing ' + number + '...');
-        this.reply(number, guess);
-      }
-      else if (answer == 'right') {
-        console.log('jack: I found it! The correct number is: ' + number);
-      }
-    });
+    this.number = randomInt(lower, upper);
+    console.log('jack: guessing ' + this.number + '...');
+    return this.number;
+  }
+  else if (answer == 'right') {
+    console.log('jack: I found it! The correct number is: ' + this.number);
   }
 });
 
