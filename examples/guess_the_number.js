@@ -1,62 +1,87 @@
-var babble = require('../index');
+var babble = require('../index'),
+    babbler = babble.babbler,
+    reply = babble.reply,
+    decide = babble.decide,
+    act = babble.act;
 
 var MIN = 0,
     MAX = 50;
 
-var emma = babble.babbler('emma'),
-    jack = babble.babbler('jack');
+/* -------------------------------------------------------------------------- */
 
-emma.listen('lets play guess the number').then(function () {
+var emma = babbler('emma');
+
+var checkGuess = reply(function (guess) {
+  var answer = (guess < this.number) ? 'higher' :
+      (guess > this.number) ? 'lower' : 'right';
+  console.log('emma: ' + answer);
+  return answer;
+}, decide(function (guess) {
+  if (guess != this.number) {
+    return checkGuess;
+  }
+}));
+
+var startGame = reply(function () {
   // choose a random value
   this.number = randomInt(MIN, MAX);
 
   console.log('emma: ok I have a number in mind between ' + MIN + ' and ' + MAX);
   return 'ok';
-}).while(function (guess) {
-    return guess != this.number;
-  }, function (guess) {
-    var answer = (guess < this.number) ? 'higher' :
-        (guess > this.number) ? 'lower' : 'right';
-    console.log('emma: ' + answer);
-    return answer;
+}, checkGuess);
+
+var denyGame = reply(function () {
+  return 'no thanks';
+});
+
+emma.listen('lets play guess the number', decide(function () {
+  if (Math.random() > 0.5) {
+    return startGame;
   }
-);
+  else {
+    return denyGame;
+  }
+}));
 
-jack.ask('emma', 'lets play guess the number').if(function (response) {
-  return response == 'ok';
-}, conversation(function (answer) {
-    if (answer == 'ok') {
-      this.lower = MIN;
-      this.upper = MAX;
-      this.number = randomInt(this.lower, this.upper);
+/* -------------------------------------------------------------------------- */
 
-      console.log('jack: guessing ' + this.number + '...');
-      return this.number;
-    }
-    // TODO: how to do a conditional onMessage?
-  }).while(function (response) {
-      return response != 'right';
-    }, conversation(function (answer) {
-      if (answer == 'higher') {
-        this.lower = this.number + 1;
+var jack = babbler('jack');
 
-        this.number = randomInt(this.lower, this.upper);
-        console.log('jack: guessing ' + this.number + '...');
-        return this.number;
-      }
-      else if (answer == 'lower') {
-        this.upper = this.number - 1;
+var triumph = act(function () {
+  console.log('jack: I found it! The correct number is: ' + this.number);
+});
 
-        this.number = randomInt(this.lower, this.upper);
-        console.log('jack: guessing ' + this.number + '...');
-        return this.number;
-      }
-      else if (answer == 'right') {
-        console.log('jack: I found it! The correct number is: ' + this.number);
-      }
-    })
-  )
-);
+var nextGuess = reply(function (response) {
+  if (response == 'higher') {
+    this.lower = this.number + 1;
+  }
+  else if (response == 'lower') {
+    this.upper = this.number - 1;
+  }
+
+  this.number = randomInt(this.lower, this.upper);
+  console.log('jack: guessing ' + this.number + '...');
+  return this.number;
+}, decide(function (response) {
+  if (response == 'right') {
+    return triumph;
+  }
+  else {
+    return nextGuess;
+  }
+}));
+
+var initialize = act(function () {
+  this.lower = MIN;
+  this.upper = MAX;
+}, nextGuess);
+
+
+jack.ask('emma', 'lets play guess the number', decide(function (response) {
+  if (response == 'ok') {
+    return initialize;
+  }
+}));
 
 
 function randomInt(min, max) {
