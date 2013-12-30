@@ -21,17 +21,17 @@ var babble = require('../index');
 var emma = babble.babbler('emma'),
     jack = babble.babbler('jack');
 
-emma.onMessage('ask age', function () {
+emma.listen('ask age').then(function () {
   return 25;
 });
 
-emma.onMessage('tell age', function (age) {
+emma.listen('tell age').then(function (age) {
   console.log(this.from + ' is ' +  age + ' years old');
 });
 
 jack.tell('emma', 'tell age', 27);
 
-jack.ask('emma', 'ask age').onMessage(function (age) {
+jack.ask('emma', 'ask age').then(function (age) {
   console.log(this.from + ' is ' + age + ' years old');
 });
 ```
@@ -44,32 +44,35 @@ var babble = require('babble');
 var emma = babble.babbler('emma'),
     jack = babble.babbler('jack');
 
-emma.onMessage('How are you doing?', function () {
-  if (Math.random() > 0.2) {
+emma.listen('How are you doing?').when(function () {
+    return Math.random() > 0.2;
+  },
+  conversation(function () {
     return 'great';
-  }
-  else {
+  }),
+  conversation(function () {
     return 'not good';
-  }
-  // TODO: problem here: how to have a different response for each of the replies?
-}).onMessage(function (response) {
-  if (response == 'Why?') {
-    this.reply('I got my nose smashed in against the wall');
-  }
-});
+  }).when({
+    'Why?': conversation(function () {
+      return 'I got my nose smashed in against the wall';
+    }),
+    'ha ha': conversation(function () {
+      return 'Shut up!';
+    })
+  })
+);
 
-jack.ask('emma', 'How are you doing?').onMessage(function (response) {
-  if (response == 'mwa') {
-    if (Math.random() > 0.5) {
+jack.ask('emma', 'How are you doing?').when({
+  'mwa': when(function () {
+      return Math.random() > 0.5;
+    },
+    conversation (function () {
       return 'Why?';
-    }
-    else {
-      return 'Here, eat some chocolate';
-    }
-  }
-}).onMessage(function (response) {
-  // etc...
-}));
+    }),
+    conversation (function () {
+    })
+  )
+});
 ```
 
 
