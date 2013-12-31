@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "pubsub-js": "~1.4.0",
+    "pubnub": "~3.5.48",
     "node-uuid": "~1.4.1"
   },
   "devDependencies": {
