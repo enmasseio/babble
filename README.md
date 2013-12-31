@@ -16,7 +16,8 @@ Example usage:
 ```js
 var babble = require('../index'),
     babbler = babble.babbler,
-    reply = babble.reply;
+    reply = babble.reply,
+    then = babble.then;
 
 var emma = babbler('emma'),
     jack = babbler('jack');
@@ -25,13 +26,13 @@ emma.listen('ask age', reply(function () {
   return 25;
 }));
 
-emma.listen('tell age', reply(function (age) {
+emma.listen('tell age', then(function (age) {
   console.log(this.from + ' is ' +  age + ' years old');
 }));
 
 jack.tell('emma', 'tell age', 27);
 
-jack.ask('emma', 'ask age', reply(function (age) {
+jack.ask('emma', 'ask age', then(function (age) {
   console.log(this.from + ' is ' + age + ' years old');
 }));
 ```
@@ -42,6 +43,7 @@ jack.ask('emma', 'ask age', reply(function (age) {
 var babble = require('babble'),
     babbler = babble.babbler,
     reply = babble.reply,
+    then = babble.then,
     decide = babble.decide;
 
 var emma = babbler('emma'),
@@ -76,7 +78,7 @@ jack.ask('emma', 'How are you doing?', decide(function (response) {
   if (response == 'mwa') {
     return reply(function () {
       return 'Why?';
-    }, reply(function (response) {
+    }, then(function (response) {
       console.log(response);
     });
   }

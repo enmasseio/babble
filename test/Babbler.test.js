@@ -1,6 +1,7 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
     ReplyNode = require('../lib/flow/ReplyNode'),
+    DoNode = require('../lib/flow/DoNode'),
     DecisionNode = require('../lib/flow/DecisionNode');
 
 describe('Babbler', function() {
@@ -52,7 +53,7 @@ describe('Babbler', function() {
   describe ('tell', function () {
     
     it('should tell a message', function(done) {
-      emma.listen('test', new ReplyNode(function (data) {
+      emma.listen('test', new DoNode(function (data) {
         assert.equal(data, null);
         done();
       }));
@@ -61,7 +62,7 @@ describe('Babbler', function() {
     });
 
     it('should tell a message with data', function(done) {
-      emma.listen('test', new ReplyNode(function (data) {
+      emma.listen('test', new DoNode(function (data) {
         assert.deepEqual(data, {a:2, b:3});
         done();
       }));
@@ -78,7 +79,7 @@ describe('Babbler', function() {
         return data.a + data.b;
       }));
 
-      jack.ask('emma', 'add', {a:2, b:3}, new ReplyNode(function (result) {
+      jack.ask('emma', 'add', {a:2, b:3}, new DoNode(function (result) {
         assert.equal(result, 5);
         done();
       }));
@@ -87,7 +88,7 @@ describe('Babbler', function() {
     it('should ask a question, reply, and reply on the reply', function(done) {
       emma.listen('count', new ReplyNode(function (count) {
         return count + 1;
-      }, new ReplyNode(function (count) {
+      }, new DoNode(function (count) {
         assert.equal(count, 3);
         done();
       })));
@@ -107,13 +108,13 @@ describe('Babbler', function() {
       jack.ask('emma', 'are you available?', new DecisionNode(function (response) {
         assert.equal(response, 'yes');
         if (response == 'yes') {
-          return new ReplyNode(function (response) {
+          return new DoNode(function (response) {
             assert.equal(response, 'yes');
             done();
           });
         }
         else {
-          return new ReplyNode(function (response) {
+          return new DoNode(function (response) {
             // this shouldn't be reached
             assert.ok(false);
           });

@@ -1,7 +1,8 @@
 var babble = require('../index'),
     babbler = babble.babbler,
     decide = babble.decide,
-    reply = babble.reply;
+    reply = babble.reply,
+    then = babble.then;
 
 var MIN = 0,
     MAX = 50;
@@ -39,7 +40,7 @@ var startGame = reply(function () {
   return 'ok';
 }, checkGuess);
 
-var denyGame = reply(function () {
+var denyGame = then(function () {
   return 'no thanks';
 });
 
@@ -58,7 +59,7 @@ var jack = babbler('jack');
 
 var nextGuess = decide(function (response) {
   if (response == 'right') {
-    return reply(function () {
+    return then(function () {
       console.log('jack: I found it! The correct number is: ' + this.number);
     });
   }
@@ -87,7 +88,7 @@ var initialize = reply(function () {
   return this.number;
 }, nextGuess);
 
-var whine = reply(function () {
+var whine = then(function () {
   console.log('emma doesn\'t want to play guess the number :(');
 });
 
