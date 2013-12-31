@@ -1,7 +1,7 @@
 # babble history
 https://github.com/josdejong/babble
 
-## not yet released, version 0.2.0
+## 2013-12-31, version 0.2.0
 
 - Changed to flow based: ReplyNode, ActionNode, DecisionNode, TriggerNode.
 
