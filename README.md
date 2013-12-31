@@ -1,6 +1,6 @@
 # Babble
 
-Dynamic communication flows between actors.
+Dynamic communication flows between message based actors.
 
 
 ## Usage
@@ -11,7 +11,7 @@ Install babble via npm:
 
 Example usage:
 
-### Simple questions or notifications
+### Simple questions and notifications
 
 ```js
 var babble = require('../index'),
@@ -37,7 +37,7 @@ jack.ask('emma', 'ask age', run(function (age) {
 }));
 ```
 
-### Conversation with multiple messages
+### Conversations with multiple messages
 
 ```js
 var babble = require('babble'),
@@ -88,6 +88,7 @@ jack.ask('emma', 'How are you doing?', decide(function (response) {
 ## API
 
 TODO: describe API
+
 
 ## Test
 

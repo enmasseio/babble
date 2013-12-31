@@ -1,7 +1,7 @@
 {
   "name": "babble",
-  "version": "0.1.0",
-  "description": "Distributed conversations over pubsub. Tell, ask, reply",
+  "version": "0.2.0",
+  "description": "Dynamic communication flows between message based actors.",
   "author": "Jos de Jong <wjosdejong@gmail.com> (https://github.com/josdejong)",
   "keywords": [
     "pubsub",
