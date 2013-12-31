@@ -19,8 +19,8 @@ var babble = require('../index'),
     reply = babble.reply,
     run = babble.run;
 
-var emma = babbler('emma'),
-    jack = babbler('jack');
+var emma = babbler('emma').subscribe(),
+    jack = babbler('jack').subscribe();
 
 emma.listen('ask age', reply(function () {
   return 25;
@@ -46,8 +46,8 @@ var babble = require('babble'),
     run = babble.run,
     decide = babble.decide;
 
-var emma = babbler('emma'),
-    jack = babbler('jack');
+var emma = babbler('emma').subscribe(),
+    jack = babbler('jack').subscribe();
 
 emma.listen('How are you doing?', decide(function (response) {
     if (Math.random() > 0.2) {

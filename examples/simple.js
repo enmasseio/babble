@@ -4,7 +4,7 @@ var babble = require('../index'),
     run = babble.run;
 
 
-var emma = babbler('emma');
+var emma = babbler('emma').subscribe();
 
 emma.listen('ask age', reply(function () {
   return 25;
@@ -15,7 +15,7 @@ emma.listen('tell age', run (function (age) {
 }));
 
 
-var jack = babbler('jack');
+var jack = babbler('jack').subscribe();
 
 jack.tell('emma', 'tell age', 27);
 

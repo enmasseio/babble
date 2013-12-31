@@ -9,7 +9,7 @@ var MIN = 0,
 
 /* -------------------------------------------------------------------------- */
 
-var emma = babbler('emma');
+var emma = babbler('emma').subscribe();
 
 var checkGuess = decide(function (guess) {
   if (guess < this.number) {
@@ -55,7 +55,7 @@ emma.listen('lets play guess the number', decide(function () {
 
 /* -------------------------------------------------------------------------- */
 
-var jack = babbler('jack');
+var jack = babbler('jack').subscribe();
 
 var triumph = function () {
   console.log('jack: I found it! The correct number is: ' + this.number);
