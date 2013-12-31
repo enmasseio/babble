@@ -113,13 +113,30 @@ describe('Babbler', function() {
             done();
           });
         }
-        else {
-          return new ActionNode(function (response) {
-            // this shouldn't be reached
-            assert.ok(false);
-          });
-        }
       }));
+    });
+
+    it('should run action nodes', function(done) {
+      var logs = [];
+
+      emma.listen('are you available?', new ActionNode(function (response) {
+        logs.push('log 1');
+      }, new ReplyNode(function (response) {
+        logs.push('log 2');
+        assert.strictEqual(response, undefined);
+        return 'yes';
+      })));
+
+      jack.ask('emma', 'are you available?', new ActionNode(function (response) {
+        assert.equal(response, 'yes');
+        logs.push('log 3');
+      }, new ActionNode(function () {
+        logs.push('log 4');
+
+        assert.deepEqual(logs, ['log 1', 'log 2', 'log 3', 'log 4']);
+
+        done();
+      })));
     });
 
   });

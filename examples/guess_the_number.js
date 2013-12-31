@@ -2,7 +2,7 @@ var babble = require('../index'),
     babbler = babble.babbler,
     decide = babble.decide,
     reply = babble.reply,
-    then = babble.then;
+    run = babble.run;
 
 var MIN = 0,
     MAX = 50;
@@ -40,12 +40,12 @@ var startGame = reply(function () {
   return 'ok';
 }, checkGuess);
 
-var denyGame = then(function () {
+var denyGame = reply(function () {
   return 'no thanks';
 });
 
 emma.listen('lets play guess the number', decide(function () {
-  if (Math.random() > 0.1) {
+  if (Math.random() > 0.2) {
     return startGame;
   }
   else {
@@ -57,27 +57,22 @@ emma.listen('lets play guess the number', decide(function () {
 
 var jack = babbler('jack');
 
-var nextGuess = decide(function (response) {
-  if (response == 'right') {
-    return then(function () {
-      console.log('jack: I found it! The correct number is: ' + this.number);
-    });
-  }
-  else {
-    return reply(function (response) {
-      if (response == 'higher') {
-        this.lower = this.number + 1;
-      }
-      else if (response == 'lower') {
-        this.upper = this.number - 1;
-      }
+var triumph = function () {
+  console.log('jack: I found it! The correct number is: ' + this.number);
+};
 
-      this.number = randomInt(this.lower, this.upper);
-      console.log('jack: guessing ' + this.number + '...');
-      return this.number;
-    }, nextGuess);
+var guess = function (response) {
+  if (response == 'higher') {
+    this.lower = this.number + 1;
   }
-});
+  else if (response == 'lower') {
+    this.upper = this.number - 1;
+  }
+
+  this.number = randomInt(this.lower, this.upper);
+  console.log('jack: guessing ' + this.number + '...');
+  return this.number;
+};
 
 var initialize = function () {
   this.lower = MIN;
@@ -92,12 +87,21 @@ var whine = function () {
   console.log('emma doesn\'t want to play guess the number :(');
 };
 
-jack.ask('emma', 'lets play guess the number', decide(function (response) {
-  if (response == 'ok') {
-    return reply(initialize, nextGuess);
+var validateGuess = decide(function (response) {
+  if (response == 'right') {
+    return run(triumph);
   }
   else {
-    return then(whine);
+    return reply(guess, validateGuess);
+  }
+});
+
+jack.ask('emma', 'lets play guess the number', decide(function (response) {
+  if (response == 'ok') {
+    return reply(initialize, validateGuess);
+  }
+  else {
+    return run(whine);
   }
 }));
 
