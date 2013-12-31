@@ -2,7 +2,7 @@
 
 - Implement error handling
 - Implement support for other pubsub solutions, like pubnub.
-- Find a better name for `act` (`reply`? `listen`? `conversation`? `talk`?).
+- Find a better name for `reply` (`reply`? `listen`? `conversation`? `talk`?).
   Or split in multiple different types having an explicit use case?
 - Provide the context as function argument instead of as `this`?
 - Store message history in context.

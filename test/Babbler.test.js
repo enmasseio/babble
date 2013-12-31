@@ -1,6 +1,6 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
-    ActionNode = require('../lib/flow/ActionNode'),
+    ReplyNode = require('../lib/flow/ReplyNode'),
     DecisionNode = require('../lib/flow/DecisionNode');
 
 describe('Babbler', function() {
@@ -37,13 +37,13 @@ describe('Babbler', function() {
   describe ('listen', function () {
 
     it ('should listen to a message', function () {
-      emma.listen('test', new ActionNode(function () {}));
+      emma.listen('test', new ReplyNode(function () {}));
 
       assert.equal(Object.keys(emma.triggers).length, 1);
     });
 
     it ('should throw an error when calling listen wrongly', function () {
-      assert.throws(function () {emma.listen({'a': 'not a string'}, new ActionNode(function () {}))});
+      assert.throws(function () {emma.listen({'a': 'not a string'}, new ReplyNode(function () {}))});
       assert.throws(function () {emma.listen('test', function () {})});
     });
 
@@ -52,7 +52,7 @@ describe('Babbler', function() {
   describe ('tell', function () {
     
     it('should tell a message', function(done) {
-      emma.listen('test', new ActionNode(function (data) {
+      emma.listen('test', new ReplyNode(function (data) {
         assert.equal(data, null);
         done();
       }));
@@ -61,7 +61,7 @@ describe('Babbler', function() {
     });
 
     it('should tell a message with data', function(done) {
-      emma.listen('test', new ActionNode(function (data) {
+      emma.listen('test', new ReplyNode(function (data) {
         assert.deepEqual(data, {a:2, b:3});
         done();
       }));
@@ -74,32 +74,32 @@ describe('Babbler', function() {
   describe ('ask', function () {
 
     it('should ask a question and reply', function(done) {
-      emma.listen('add', new ActionNode(function (data) {
+      emma.listen('add', new ReplyNode(function (data) {
         return data.a + data.b;
       }));
 
-      jack.ask('emma', 'add', {a:2, b:3}, new ActionNode(function (result) {
+      jack.ask('emma', 'add', {a:2, b:3}, new ReplyNode(function (result) {
         assert.equal(result, 5);
         done();
       }));
     });
 
     it('should ask a question, reply, and reply on the reply', function(done) {
-      emma.listen('count', new ActionNode(function (count) {
+      emma.listen('count', new ReplyNode(function (count) {
         return count + 1;
-      }, new ActionNode(function (count) {
+      }, new ReplyNode(function (count) {
         assert.equal(count, 3);
         done();
       })));
 
-      jack.ask('emma', 'count', 0, new ActionNode(function (count) {
+      jack.ask('emma', 'count', 0, new ReplyNode(function (count) {
         assert.equal(count, 1);
         return count + 2;
       }));
     });
 
     it('should make a decision during a conversation', function(done) {
-      emma.listen('are you available?', new ActionNode(function (data  ) {
+      emma.listen('are you available?', new ReplyNode(function (data  ) {
         assert.strictEqual(data, undefined);
         return 'yes';
       }));
@@ -107,13 +107,13 @@ describe('Babbler', function() {
       jack.ask('emma', 'are you available?', new DecisionNode(function (response) {
         assert.equal(response, 'yes');
         if (response == 'yes') {
-          return new ActionNode(function (response) {
+          return new ReplyNode(function (response) {
             assert.equal(response, 'yes');
             done();
           });
         }
         else {
-          return new ActionNode(function (response) {
+          return new ReplyNode(function (response) {
             // this shouldn't be reached
             assert.ok(false);
           });

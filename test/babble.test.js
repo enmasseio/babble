@@ -13,5 +13,5 @@ describe('babbler', function() {
     assert.throws(function () {babble.babbler(); });
   });
 
-  // TODO: test act and decide
+  // TODO: test reply and decide
 });

@@ -1,8 +1,6 @@
 # Babble
 
-Dynamic conversations between peers.
-
-Babble makes it easy to create dynamic communication flows between peers.
+Dynamic communication flows between actors.
 
 
 ## Usage
@@ -18,22 +16,22 @@ Example usage:
 ```js
 var babble = require('../index'),
     babbler = babble.babbler,
-    act = babble.act;
+    reply = babble.reply;
 
 var emma = babbler('emma'),
     jack = babbler('jack');
 
-emma.listen('ask age', act(function () {
+emma.listen('ask age', reply(function () {
   return 25;
 }));
 
-emma.listen('tell age', act(function (age) {
+emma.listen('tell age', reply(function (age) {
   console.log(this.from + ' is ' +  age + ' years old');
 }));
 
 jack.tell('emma', 'tell age', 27);
 
-jack.ask('emma', 'ask age', act(function (age) {
+jack.ask('emma', 'ask age', reply(function (age) {
   console.log(this.from + ' is ' + age + ' years old');
 }));
 ```
@@ -43,7 +41,7 @@ jack.ask('emma', 'ask age', act(function (age) {
 ```js
 var babble = require('babble'),
     babbler = babble.babbler,
-    act = babble.act,
+    reply = babble.reply,
     decide = babble.decide;
 
 var emma = babbler('emma'),
@@ -51,21 +49,21 @@ var emma = babbler('emma'),
 
 emma.listen('How are you doing?', decide(function (response) {
     if (Math.random() > 0.2) {
-      return act(function () {
+      return reply(function () {
         return 'great';
       });
     }
     else {
-      return act(function () {
+      return reply(function () {
         return 'not good';
       }, decide(function (response) {
         if (response == 'Why?') {
-          return act(function () {
+          return reply(function () {
             return 'I got my nose smashed in against the wall';
           });
         }
-        else if (response == 'ha ha') {
-          return act(function () {
+        else if (response == 'I don\'t care') {
+          return reply(function () {
             return 'Shut up!';
           })
         }
@@ -76,9 +74,9 @@ emma.listen('How are you doing?', decide(function (response) {
 
 jack.ask('emma', 'How are you doing?', decide(function (response) {
   if (response == 'mwa') {
-    return act(function () {
+    return reply(function () {
       return 'Why?';
-    }, act(function (response) {
+    }, reply(function (response) {
       console.log(response);
     });
   }
