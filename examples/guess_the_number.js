@@ -79,25 +79,25 @@ var nextGuess = decide(function (response) {
   }
 });
 
-var initialize = reply(function () {
+var initialize = function () {
   this.lower = MIN;
   this.upper = MAX;
 
   this.number = randomInt(this.lower, this.upper);
   console.log('jack: guessing ' + this.number + '...');
   return this.number;
-}, nextGuess);
+};
 
-var whine = then(function () {
+var whine = function () {
   console.log('emma doesn\'t want to play guess the number :(');
-});
+};
 
 jack.ask('emma', 'lets play guess the number', decide(function (response) {
   if (response == 'ok') {
-    return initialize;
+    return reply(initialize, nextGuess);
   }
   else {
-    return whine;
+    return then(whine);
   }
 }));
 

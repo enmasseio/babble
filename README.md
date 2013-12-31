@@ -11,7 +11,7 @@ Install babble via npm:
 
 Example usage:
 
-### Simple request/response
+### Simple questions or notifications
 
 ```js
 var babble = require('../index'),
@@ -37,7 +37,7 @@ jack.ask('emma', 'ask age', then(function (age) {
 }));
 ```
 
-### Conversation with multiple replies
+### Conversation with multiple messages
 
 ```js
 var babble = require('babble'),
@@ -85,6 +85,9 @@ jack.ask('emma', 'How are you doing?', decide(function (response) {
 }));
 ```
 
+## API
+
+TODO: describe API
 
 ## Test
 
