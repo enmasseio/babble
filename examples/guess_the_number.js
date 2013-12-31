@@ -1,6 +1,5 @@
 var babble = require('../index'),
     babbler = babble.babbler,
-    reply = babble.reply,
     decide = babble.decide,
     act = babble.act;
 
@@ -11,7 +10,7 @@ var MIN = 0,
 
 var emma = babbler('emma');
 
-var checkGuess = reply(function (guess) {
+var checkGuess = act(function (guess) {
   var answer = (guess < this.number) ? 'higher' :
       (guess > this.number) ? 'lower' : 'right';
   console.log('emma: ' + answer);
@@ -22,7 +21,7 @@ var checkGuess = reply(function (guess) {
   }
 }));
 
-var startGame = reply(function () {
+var startGame = act(function () {
   // choose a random value
   this.number = randomInt(MIN, MAX);
 
@@ -30,7 +29,7 @@ var startGame = reply(function () {
   return 'ok';
 }, checkGuess);
 
-var denyGame = reply(function () {
+var denyGame = act(function () {
   return 'no thanks';
 });
 
@@ -51,7 +50,7 @@ var triumph = act(function () {
   console.log('jack: I found it! The correct number is: ' + this.number);
 });
 
-var nextGuess = reply(function (response) {
+var nextGuess = act(function (response) {
   if (response == 'higher') {
     this.lower = this.number + 1;
   }

@@ -1,11 +1,31 @@
 var assert = require('assert'),
-    Babbler = require('../lib/Babbler');
+    Babbler = require('../lib/Babbler'),
+    ActionNode = require('../lib/flow/ActionNode');
 
 describe('Babbler', function() {
+  var emma, jack;
 
-  it('should create a babbler', function() {
-    var emma = new Babbler('emma0');
-    assert.ok(emma instanceof Babbler);
+  beforeEach(function () {
+    emma = new Babbler('emma');
+    jack = new Babbler('jack');
+  });
+
+  afterEach(function () {
+    // there shouldn't be any open conversations left
+    assert.equal(Object.keys(emma.conversations).length, 0);
+    assert.equal(Object.keys(jack.conversations).length, 0);
+
+    emma.destroy();
+    jack.destroy();
+
+    emma = null;
+    jack = null;
+  });
+
+  it('should create and destroy a babbler', function() {
+    var susan = new Babbler('susan');
+    assert.ok(susan instanceof Babbler);
+    susan.destroy();
   });
 
   it('should throw an error when creating a babbler with wrong syntax', function() {
@@ -13,30 +33,39 @@ describe('Babbler', function() {
     assert.throws (function () {Babbler('whoops'); });
   });
 
+  describe ('listen', function () {
+
+    it ('should listen to a message', function () {
+      emma.listen('test', new ActionNode(function () {}));
+
+      assert.equal(Object.keys(emma.triggers).length, 1);
+    });
+
+    it ('should throw an error when calling listen wrongly', function () {
+      assert.throws(function () {emma.listen({'a': 'not a string'}, new ActionNode(function () {}))});
+      assert.throws(function () {emma.listen('test', function () {})});
+    });
+
+  });
+
   describe ('tell', function () {
-
+    
     it('should tell a message', function(done) {
-      var emma = new Babbler('emma1');
-      var jack = new Babbler('jack1');
-
-      emma.listen('test', function (data) {
+      emma.listen('test', new ActionNode(function (data) {
         assert.equal(data, null);
         done();
-      });
+      }));
 
-      jack.tell('emma1', 'test');
+      jack.tell('emma', 'test');
     });
 
     it('should tell a message with data', function(done) {
-      var emma = new Babbler('emma2');
-      var jack = new Babbler('jack2');
-
-      emma.listen('test', function (data) {
+      emma.listen('test', new ActionNode(function (data) {
         assert.deepEqual(data, {a:2, b:3});
         done();
-      });
+      }));
 
-      jack.tell('emma2', 'test', {a:2, b:3});
+      jack.tell('emma', 'test', {a:2, b:3});
     });
 
   });
@@ -44,36 +73,46 @@ describe('Babbler', function() {
   describe ('ask', function () {
 
     it('should ask a question and reply', function(done) {
-      var emma = new Babbler('emma1');
-      var jack = new Babbler('jack1');
+      emma.listen('add', new ActionNode(function (data) {
+        return data.a + data.b;
+      }));
 
-      emma.listen('add', function (data) {
-        this.reply(data.a + data.b);
-      });
-
-      jack.ask('emma1', 'add', {a:2, b:3}, function (result) {
+      jack.ask('emma', 'add', {a:2, b:3}, new ActionNode(function (result) {
         assert.equal(result, 5);
         done();
-      });
+      }));
     });
 
     it('should ask a question, reply, and reply on the reply', function(done) {
-      var emma = new Babbler('emma1');
-      var jack = new Babbler('jack1');
+      emma.listen('count', new ActionNode(function (count) {
+        return count + 1;
+      }, new ActionNode(function (count) {
+        assert.equal(count, 3);
+        done();
+      })));
 
-      emma.listen('count', function (count) {
-        this.reply(count + 1, function (count) {
-          assert.equal(count, 3);
-          done();
-        });
-      });
-
-      jack.ask('emma1', 'count', 0, function (count) {
+      jack.ask('emma', 'count', 0, new ActionNode(function (count) {
         assert.equal(count, 1);
-        this.reply(count + 2);
-      });
+        return count + 2;
+      }));
+    });
+
+    it('should store context during a conversation', function(done) {
+      emma.listen('count', new ActionNode(function (count) {
+        return count + 1;
+      }, new ActionNode(function (count) {
+        assert.equal(count, 3);
+        done();
+      })));
+
+      jack.ask('emma', 'count', 0, new ActionNode(function (count) {
+        assert.equal(count, 1);
+        return count + 2;
+      }));
     });
 
   });
+
+  // TODO: test use of context
 
 });
