@@ -10,16 +10,26 @@ var MIN = 0,
 
 var emma = babbler('emma');
 
-var checkGuess = act(function (guess) {
-  var answer = (guess < this.number) ? 'higher' :
-      (guess > this.number) ? 'lower' : 'right';
-  console.log('emma: ' + answer);
-  return answer;
-}, decide(function (guess) {
-  if (guess != this.number) {
-    return checkGuess;
+var checkGuess = decide(function (guess) {
+  if (guess < this.number) {
+    return act(function () {
+      console.log('emma: higher');
+      return 'higher';
+    }, checkGuess)
   }
-}));
+  else if (guess > this.number) {
+    return act(function () {
+      console.log('emma: lower');
+      return 'lower';
+    }, checkGuess)
+  }
+  else  {
+    return act(function () {
+      console.log('emma: right!');
+      return 'right';
+    });
+  }
+});
 
 var startGame = act(function () {
   // choose a random value
@@ -34,7 +44,7 @@ var denyGame = act(function () {
 });
 
 emma.listen('lets play guess the number', decide(function () {
-  if (Math.random() > 0.5) {
+  if (Math.random() > 0.1) {
     return startGame;
   }
   else {
@@ -46,39 +56,47 @@ emma.listen('lets play guess the number', decide(function () {
 
 var jack = babbler('jack');
 
-var triumph = act(function () {
-  console.log('jack: I found it! The correct number is: ' + this.number);
-});
-
-var nextGuess = act(function (response) {
-  if (response == 'higher') {
-    this.lower = this.number + 1;
-  }
-  else if (response == 'lower') {
-    this.upper = this.number - 1;
-  }
-
-  this.number = randomInt(this.lower, this.upper);
-  console.log('jack: guessing ' + this.number + '...');
-  return this.number;
-}, decide(function (response) {
+var nextGuess = decide(function (response) {
   if (response == 'right') {
-    return triumph;
+    return act(function () {
+      console.log('jack: I found it! The correct number is: ' + this.number);
+    });
   }
   else {
-    return nextGuess;
+    return act(function (response) {
+      if (response == 'higher') {
+        this.lower = this.number + 1;
+      }
+      else if (response == 'lower') {
+        this.upper = this.number - 1;
+      }
+
+      this.number = randomInt(this.lower, this.upper);
+      console.log('jack: guessing ' + this.number + '...');
+      return this.number;
+    }, nextGuess);
   }
-}));
+});
 
 var initialize = act(function () {
   this.lower = MIN;
   this.upper = MAX;
+
+  this.number = randomInt(this.lower, this.upper);
+  console.log('jack: guessing ' + this.number + '...');
+  return this.number;
 }, nextGuess);
 
+var whine = act(function () {
+  console.log('emma doesn\'t want to play guess the number :(');
+});
 
 jack.ask('emma', 'lets play guess the number', decide(function (response) {
   if (response == 'ok') {
     return initialize;
+  }
+  else {
+    return whine;
   }
 }));
 

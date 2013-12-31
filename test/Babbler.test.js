@@ -1,6 +1,7 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
-    ActionNode = require('../lib/flow/ActionNode');
+    ActionNode = require('../lib/flow/ActionNode'),
+    DecisionNode = require('../lib/flow/DecisionNode');
 
 describe('Babbler', function() {
   var emma, jack;
@@ -97,22 +98,29 @@ describe('Babbler', function() {
       }));
     });
 
-    it('should store context during a conversation', function(done) {
-      emma.listen('count', new ActionNode(function (count) {
-        return count + 1;
-      }, new ActionNode(function (count) {
-        assert.equal(count, 3);
-        done();
-      })));
+    it('should make a decision during a conversation', function(done) {
+      emma.listen('are you available?', new ActionNode(function (data  ) {
+        assert.strictEqual(data, undefined);
+        return 'yes';
+      }));
 
-      jack.ask('emma', 'count', 0, new ActionNode(function (count) {
-        assert.equal(count, 1);
-        return count + 2;
+      jack.ask('emma', 'are you available?', new DecisionNode(function (response) {
+        assert.equal(response, 'yes');
+        if (response == 'yes') {
+          return new ActionNode(function (response) {
+            assert.equal(response, 'yes');
+            done();
+          });
+        }
+        else {
+          return new ActionNode(function (response) {
+            // this shouldn't be reached
+            assert.ok(false);
+          });
+        }
       }));
     });
 
   });
-
-  // TODO: test use of context
 
 });
