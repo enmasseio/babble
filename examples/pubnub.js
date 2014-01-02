@@ -1,7 +1,5 @@
 var babble = require('../index'),
-    babbler = babble.babbler,
-    reply = babble.reply,
-    run = babble.run;
+    async = require('async');
 
 // initialize pubnub
 var pubnub = babble.pubsub.pubnub({
@@ -9,25 +7,32 @@ var pubnub = babble.pubsub.pubnub({
   subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
 });
 
-var emma = babbler('emma').subscribe(pubnub);
-var jack = babbler('jack').subscribe(pubnub);
+// subscribing to pubsub works asynchronous
+async.parallel({
+  emma: function (cb) {
+    var emma = babble.babbler('emma').subscribe(pubnub, function () {
+      cb(null, emma);
+    });
+  },
 
-// TODO: implement and use connected callback of subscription
-setTimeout(function () {
-
-  emma.listen('ask age', reply(function (response) {
+  jack: function (cb) {
+    var jack = babble.babbler('jack').subscribe(pubnub, function () {
+      cb(null, jack);
+    });
+  }
+},
+function (err, babblers) {
+  babblers.emma.listen('ask age', babble.reply(function (response) {
     return 25;
   }));
 
-  emma.listen('tell age', run (function (age) {
+  babblers.emma.listen('tell age', babble.run (function (age) {
     console.log(this.from + ' is ' +  age + ' years old');
   }));
 
+  babblers.jack.tell('emma', 'tell age', 27);
 
-  jack.tell('emma', 'tell age', 27);
-
-  jack.ask('emma', 'ask age', run (function (age) {
+  babblers.jack.ask('emma', 'ask age', babble.run (function (age) {
     console.log(this.from + ' is ' + age + ' years old');
   }));
-
-}, 2000);
+});

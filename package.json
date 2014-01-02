@@ -15,7 +15,8 @@
   "dependencies": {
     "pubsub-js": "~1.4.0",
     "pubnub": "~3.5.48",
-    "node-uuid": "~1.4.1"
+    "node-uuid": "~1.4.1",
+    "async": "~0.2.9"
   },
   "devDependencies": {
     "mocha": "latest",
