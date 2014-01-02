@@ -1,8 +1,8 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
-    ReplyNode = require('../lib/flow/ReplyNode'),
-    ActionNode = require('../lib/flow/ActionNode'),
-    DecisionNode = require('../lib/flow/DecisionNode');
+    Reply = require('../lib/block/Reply'),
+    Action = require('../lib/block/Action'),
+    Decision = require('../lib/block/Decision');
 
 describe('Babbler', function() {
   var emma, jack;
@@ -38,13 +38,13 @@ describe('Babbler', function() {
   describe ('listen', function () {
 
     it ('should listen to a message', function () {
-      emma.listen('test', new ReplyNode(function () {}));
+      emma.listen('test', new Reply(function () {}));
 
       assert.equal(Object.keys(emma.triggers).length, 1);
     });
 
     it ('should throw an error when calling listen wrongly', function () {
-      assert.throws(function () {emma.listen({'a': 'not a string'}, new ReplyNode(function () {}))});
+      assert.throws(function () {emma.listen({'a': 'not a string'}, new Reply(function () {}))});
       assert.throws(function () {emma.listen('test', function () {})});
     });
 
@@ -53,7 +53,7 @@ describe('Babbler', function() {
   describe ('tell', function () {
     
     it('should tell a message', function(done) {
-      emma.listen('test', new ActionNode(function (data) {
+      emma.listen('test', new Action(function (data) {
         assert.equal(data, null);
         done();
       }));
@@ -62,7 +62,7 @@ describe('Babbler', function() {
     });
 
     it('should tell a message with data', function(done) {
-      emma.listen('test', new ActionNode(function (data) {
+      emma.listen('test', new Action(function (data) {
         assert.deepEqual(data, {a:2, b:3});
         done();
       }));
@@ -75,40 +75,40 @@ describe('Babbler', function() {
   describe ('ask', function () {
 
     it('should ask a question and reply', function(done) {
-      emma.listen('add', new ReplyNode(function (data) {
+      emma.listen('add', new Reply(function (data) {
         return data.a + data.b;
       }));
 
-      jack.ask('emma', 'add', {a:2, b:3}, new ActionNode(function (result) {
+      jack.ask('emma', 'add', {a:2, b:3}, new Action(function (result) {
         assert.equal(result, 5);
         done();
       }));
     });
 
     it('should ask a question, reply, and reply on the reply', function(done) {
-      emma.listen('count', new ReplyNode(function (count) {
+      emma.listen('count', new Reply(function (count) {
         return count + 1;
-      }, new ActionNode(function (count) {
+      }, new Action(function (count) {
         assert.equal(count, 3);
         done();
       })));
 
-      jack.ask('emma', 'count', 0, new ReplyNode(function (count) {
+      jack.ask('emma', 'count', 0, new Reply(function (count) {
         assert.equal(count, 1);
         return count + 2;
       }));
     });
 
     it('should make a decision during a conversation', function(done) {
-      emma.listen('are you available?', new ReplyNode(function (data  ) {
+      emma.listen('are you available?', new Reply(function (data  ) {
         assert.strictEqual(data, undefined);
         return 'yes';
       }));
 
-      jack.ask('emma', 'are you available?', new DecisionNode(function (response) {
+      jack.ask('emma', 'are you available?', new Decision(function (response) {
         assert.equal(response, 'yes');
         if (response == 'yes') {
-          return new ActionNode(function (response) {
+          return new Action(function (response) {
             assert.equal(response, 'yes');
             done();
           });
@@ -119,18 +119,18 @@ describe('Babbler', function() {
     it('should run action nodes', function(done) {
       var logs = [];
 
-      emma.listen('are you available?', new ActionNode(function (response) {
+      emma.listen('are you available?', new Action(function (response) {
         logs.push('log 1');
-      }, new ReplyNode(function (response) {
+      }, new Reply(function (response) {
         logs.push('log 2');
         assert.strictEqual(response, undefined);
         return 'yes';
       })));
 
-      jack.ask('emma', 'are you available?', new ActionNode(function (response) {
+      jack.ask('emma', 'are you available?', new Action(function (response) {
         assert.equal(response, 'yes');
         logs.push('log 3');
-      }, new ActionNode(function () {
+      }, new Action(function () {
         logs.push('log 4');
 
         assert.deepEqual(logs, ['log 1', 'log 2', 'log 3', 'log 4']);

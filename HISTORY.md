@@ -10,7 +10,7 @@ https://github.com/josdejong/babble
 
 ## 2013-12-31, version 0.2.0
 
-- Changed to flow based: ReplyNode, ActionNode, DecisionNode, TriggerNode.
+- Changed to flow based: Reply, Action, Decision, Trigger.
 
 
 ## 2013-12-24, version 0.1.0

@@ -2,6 +2,19 @@
 
 Dynamic communication flows between message based actors.
 
+Babble makes it easy to code communication flows between actors. A conversation
+is modeled as a control flow diagram containing blocks `listen`, `ask`, `tell`,
+`reply`, `decide`, and `run`. Each block can link to a next block in the
+control flow. Conversations are dynamic: a scenario is build programmatically,
+and the blocks can dynamically determine the next block in the scenario.
+
+Babble uses pubsub to communicate between actors. It comes with built in
+support to communicate locally, and has as support for
+[pubnub](http://www.pubnub.com/) to connect actors distributed over multiple
+devices.
+
+Babble runs in node.js and in the browser.
+
 
 ## Usage
 
@@ -9,9 +22,28 @@ Install babble via npm:
 
     npm install babble
 
-Example usage:
+Then babble can be loaded and used:
 
-### Simple questions and notifications
+```js
+
+var babble = require('babble');
+
+var emma = babble.babbler('emma').subscribe(),
+    jack = babble.babbler('jack').subscribe();
+
+emma.listen('ask age', babble.reply(function () {
+  return 25;
+}));
+
+jack.ask('emma', 'ask age', babble.run(function (age) {
+  console.log(this.from + ' is ' + age + ' years old');
+}));
+```
+
+
+## Examples
+
+### Ask a question
 
 Babble can be used to listen for messages and send a reply. In the following
 example, emma listens for two messages: "ask age" and "tell age". In the first
@@ -49,7 +81,7 @@ jack.ask('emma', 'ask age', run(function (age) {
 }));
 ```
 
-### Conversations with multiple messages
+### Have a conversation
 
 The following scenario describes two peers planning a meeting in two steps:
 First jack asks whether emma has time for a meeting, and if so, jack will

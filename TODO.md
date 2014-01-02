@@ -1,5 +1,6 @@
 # TO DO
 
+- Implement support for a static map with blocks for `Decision` block.
 - Implement error handling
 - Implement support for promises to allow async callback functions
 - Provide the context as function argument instead of as `this`?
