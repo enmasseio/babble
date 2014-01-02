@@ -22,6 +22,29 @@ Install babble via npm:
 
     npm install babble
 
+Load in node.js:
+
+```js
+var babble = require('babble');
+```
+
+Load in the browser:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- load pubnub, only needed when using pubnub -->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/pubnub/3.5.4/pubnub.min.js"></script>
+
+  <!-- load babble -->
+  <script src="../../dist/babble.min.js"></script>
+</head>
+<body>
+</body>
+</html>
+```
+
 Then babble can be loaded and used:
 
 ```js
@@ -153,9 +176,26 @@ jack.ask('emma', 'do you have time today?', decide(function (response) {
 }));
 ```
 
+
 ## API
 
 TODO: describe API
+
+
+## Build
+
+Babble can be build for use in the browser. This is done using the tools
+browserify and uglify. First install all project dependencies:
+
+    npm install
+
+To build the library `./dist/babble.js`, run:
+
+    npm run build
+
+To build and minify the library `./dist/babble.min.js`, run:
+
+    npm run minify
 
 
 ## Test

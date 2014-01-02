@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>babble in the browser using pubnub</title>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/pubnub/3.5.4/pubnub.min.js"></script>
+  <script src="../../../dist/babble.js"></script>
+</head>
+<body>
+
+<div>First open emma.html in a browser, then open jack.html in a browser.</div>
+<div id="log"></div>
+
+<script>
+  // initialize pubnub
+  var pubnub = babble.pubsub.pubnub({
+    publish_key: 'demo',    // REPLACE THIS WITH YOUR PUBNUB PUBLISH KEY
+    subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
+  });
+
+  var jack = babble.babbler('jack').subscribe(pubnub);
+
+  // TODO: implement and use connected callback of subscription
+  setTimeout(function () {
+    jack.tell('emma', 'tell age', 27);
+
+    jack.ask('emma', 'ask age', babble.run(function (age) {
+      write(this.from + ' is ' + age + ' years old');
+    }));
+  }, 2000);
+
+  function write (message) {
+    document.getElementById('log').innerHTML += message + '<br>';
+  }
+
+</script>
+
+</body>
+</html>

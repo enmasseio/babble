@@ -5,8 +5,8 @@ var babble = require('../index'),
 
 // initialize pubnub
 var pubnub = babble.pubsub.pubnub({
-  publish_key: 'demo',
-  subscribe_key: 'demo'
+  publish_key: 'demo',    // REPLACE THIS WITH YOUR PUBNUB PUBLISH KEY
+  subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
 });
 
 var emma = babbler('emma').subscribe(pubnub);
