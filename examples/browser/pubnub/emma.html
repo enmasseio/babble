@@ -17,15 +17,16 @@
     subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
   });
 
-  var emma = babble.babbler('emma').subscribe(pubnub);
+  var emma = babble.babbler('emma').subscribe(pubnub, function () {
+    emma.listen('ask age', babble.reply(function (response) {
+      return 25;
+    }));
 
-  emma.listen('ask age', babble.reply(function (response) {
-    return 25;
-  }));
+    emma.listen('tell age', babble.run (function (age) {
+      write(this.from + ' is ' +  age + ' years old');
+    }));
+  });
 
-  emma.listen('tell age', babble.run (function (age) {
-    write(this.from + ' is ' +  age + ' years old');
-  }));
 
   function write (message) {
     document.getElementById('log').innerHTML += message + '<br>';
