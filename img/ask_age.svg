@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.2" width="203.2mm" height="101.6mm" viewBox="0 0 20320 10160" preserveAspectRatio="xMidYMid" fill-rule="evenodd" clip-path="url(#presentation_clip_path)" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+ <defs class="ClipPathGroup">
+  <clipPath id="presentation_clip_path" clipPathUnits="userSpaceOnUse">
+   <rect x="0" y="0" width="20320" height="10160"/>
+  </clipPath>
+ </defs>
+ <defs class="TextShapeIndex">
+  <g ooo:slide="id1" ooo:id-list="id3 id4 id5 id6 id7 id8 id9 id10 id11 id12 id13 id14 id15 id16 id17"/>
+ </defs>
+ <defs class="EmbeddedBulletChars">
+  <g id="bullet-char-template(57356)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 580,1141 L 1163,571 580,0 -4,571 580,1141 Z"/>
+  </g>
+  <g id="bullet-char-template(57354)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 8,1128 L 1137,1128 1137,0 8,0 8,1128 Z"/>
+  </g>
+  <g id="bullet-char-template(10146)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 174,0 L 602,739 174,1481 1456,739 174,0 Z M 1358,739 L 309,1346 659,739 1358,739 Z"/>
+  </g>
+  <g id="bullet-char-template(10132)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 2015,739 L 1276,0 717,0 1260,543 174,543 174,936 1260,936 717,1481 1274,1481 2015,739 Z"/>
+  </g>
+  <g id="bullet-char-template(10007)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 0,-2 C -7,14 -16,27 -25,37 L 356,567 C 262,823 215,952 215,954 215,979 228,992 255,992 264,992 276,990 289,987 310,991 331,999 354,1012 L 381,999 492,748 772,1049 836,1024 860,1049 C 881,1039 901,1025 922,1006 886,937 835,863 770,784 769,783 710,716 594,584 L 774,223 C 774,196 753,168 711,139 L 727,119 C 717,90 699,76 672,76 641,76 570,178 457,381 L 164,-76 C 142,-110 111,-127 72,-127 30,-127 9,-110 8,-76 1,-67 -2,-52 -2,-32 -2,-23 -1,-13 0,-2 Z"/>
+  </g>
+  <g id="bullet-char-template(10004)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 285,-33 C 182,-33 111,30 74,156 52,228 41,333 41,471 41,549 55,616 82,672 116,743 169,778 240,778 293,778 328,747 346,684 L 369,508 C 377,444 397,411 428,410 L 1163,1116 C 1174,1127 1196,1133 1229,1133 1271,1133 1292,1118 1292,1087 L 1292,965 C 1292,929 1282,901 1262,881 L 442,47 C 390,-6 338,-33 285,-33 Z"/>
+  </g>
+  <g id="bullet-char-template(9679)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 813,0 C 632,0 489,54 383,161 276,268 223,411 223,592 223,773 276,916 383,1023 489,1130 632,1184 813,1184 992,1184 1136,1130 1245,1023 1353,916 1407,772 1407,592 1407,412 1353,268 1245,161 1136,54 992,0 813,0 Z"/>
+  </g>
+  <g id="bullet-char-template(8226)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M 346,457 C 273,457 209,483 155,535 101,586 74,649 74,723 74,796 101,859 155,911 209,963 273,989 346,989 419,989 480,963 531,910 582,859 608,796 608,723 608,648 583,586 532,535 482,483 420,457 346,457 Z"/>
+  </g>
+  <g id="bullet-char-template(8211)" transform="scale(0.00048828125,-0.00048828125)">
+   <path d="M -4,459 L 1135,459 1135,606 -4,606 -4,459 Z"/>
+  </g>
+ </defs>
+ <defs class="TextEmbeddedBitmaps"/>
+ <g>
+  <g id="id2" class="Master_Slide">
+   <g id="bg-id2" class="Background"/>
+   <g id="bo-id2" class="BackgroundObjects"/>
+  </g>
+ </g>
+ <g class="SlideGroup">
+  <g>
+   <g id="id1" class="Slide" clip-path="url(#presentation_clip_path)">
+    <g class="Page">
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id3">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 2540,4445 L 635,4445 635,1905 4445,1905 4445,4445 2540,4445 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="1846" y="3061"><tspan fill="rgb(0,0,0)" stroke="none">listen</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="400"><tspan class="TextPosition" x="1429" y="3658"><tspan fill="rgb(0,0,0)" stroke="none">“</tspan><tspan fill="rgb(0,0,0)" stroke="none">ask age”</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.TextShape">
+      <g id="id4">
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="885" y="1243"><tspan fill="rgb(0,0,0)" stroke="none">Emma</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.TextShape">
+      <g id="id5">
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="11045" y="1243"><tspan fill="rgb(0,0,0)" stroke="none">Jack</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id6">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 7620,4445 L 5715,4445 5715,1905 9525,1905 9525,4445 7620,4445 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="6926" y="3061"><tspan fill="rgb(0,0,0)" stroke="none">listen</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="400"><tspan class="TextPosition" x="6583" y="3658"><tspan fill="rgb(0,0,0)" stroke="none">“</tspan><tspan fill="rgb(0,0,0)" stroke="none">tell age”</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id7">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 2540,9525 L 635,9525 635,6985 4445,6985 4445,9525 2540,9525 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="1905" y="8141"><tspan fill="rgb(0,0,0)" stroke="none">reply</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="400"><tspan class="TextPosition" x="1473" y="8738"><tspan fill="rgb(0,0,0)" stroke="none">return 25</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.ConnectorShape">
+      <g id="id8">
+       <path fill="none" stroke="rgb(0,0,0)" d="M 2540,4445 L 2540,6555"/>
+       <path fill="rgb(0,0,0)" stroke="none" d="M 2540,6985 L 2690,6535 2390,6535 2540,6985 Z"/>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id9">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 7620,6985 C 8700,6985 9525,7535 9525,8255 9525,8975 8700,9525 7620,9525 6540,9525 5715,8975 5715,8255 5715,7535 6540,6985 7620,6985 Z"/>
+       <path fill="none" stroke="rgb(51,51,51)" d="M 5715,6985 L 5715,6985 Z"/>
+       <path fill="none" stroke="rgb(51,51,51)" d="M 9526,9526 L 9526,9526 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="7194" y="8141"><tspan fill="rgb(0,0,0)" stroke="none">run</tspan></tspan><tspan class="TextPosition" x="6360" y="8738"><tspan font-weight="400" fill="rgb(0,0,0)" stroke="none">output age</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.ConnectorShape">
+      <g id="id10">
+       <path fill="none" stroke="rgb(0,0,0)" d="M 7620,4445 L 7620,6555"/>
+       <path fill="rgb(0,0,0)" stroke="none" d="M 7620,6985 L 7770,6535 7470,6535 7620,6985 Z"/>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id11">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 12700,4445 L 10795,4445 10795,1905 14605,1905 14605,4445 12700,4445 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="12315" y="3061"><tspan fill="rgb(0,0,0)" stroke="none">tell</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="400"><tspan class="TextPosition" x="11218" y="3658"><tspan fill="rgb(0,0,0)" stroke="none">“</tspan><tspan fill="rgb(0,0,0)" stroke="none">tell age”, 27</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id12">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 17774,4445 L 15869,4445 15869,1905 19679,1905 19679,4445 17774,4445 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="17330" y="3061"><tspan fill="rgb(0,0,0)" stroke="none">ask</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="400"><tspan class="TextPosition" x="16663" y="3658"><tspan fill="rgb(0,0,0)" stroke="none">“</tspan><tspan fill="rgb(0,0,0)" stroke="none">ask age”</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.CustomShape">
+      <g id="id13">
+       <path fill="none" stroke="rgb(51,51,51)" d="M 17780,6985 C 18860,6985 19685,7535 19685,8255 19685,8975 18860,9525 17780,9525 16700,9525 15875,8975 15875,8255 15875,7535 16700,6985 17780,6985 Z"/>
+       <path fill="none" stroke="rgb(51,51,51)" d="M 15875,6985 L 15875,6985 Z"/>
+       <path fill="none" stroke="rgb(51,51,51)" d="M 19686,9526 L 19686,9526 Z"/>
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-weight="700"><tspan class="TextPosition" x="17354" y="8141"><tspan fill="rgb(0,0,0)" stroke="none">run</tspan></tspan><tspan class="TextPosition" x="16520" y="8738"><tspan font-weight="400" fill="rgb(0,0,0)" stroke="none">output age</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.ConnectorShape">
+      <g id="id14">
+       <path fill="none" stroke="rgb(0,0,0)" d="M 17774,4445 L 17774,5715 17780,5715 17780,6555"/>
+       <path fill="rgb(0,0,0)" stroke="none" d="M 17780,6985 L 17930,6535 17630,6535 17780,6985 Z"/>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.TextShape">
+      <g id="id15">
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="2790" y="5601"><tspan fill="rgb(0,0,0)" stroke="none">wait for a </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="2790" y="6198"><tspan fill="rgb(0,0,0)" stroke="none">message</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.TextShape">
+      <g id="id16">
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="7870" y="5601"><tspan fill="rgb(0,0,0)" stroke="none">wait for a</tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="7870" y="6198"><tspan fill="rgb(0,0,0)" stroke="none">message</tspan></tspan></tspan></text>
+      </g>
+     </g>
+     <g class="com.sun.star.drawing.TextShape">
+      <g id="id17">
+       <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="15223" y="5601"><tspan fill="rgb(0,0,0)" stroke="none">wait for a </tspan></tspan></tspan><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="529px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="15371" y="6198"><tspan fill="rgb(0,0,0)" stroke="none">message</tspan></tspan></tspan></text>
+      </g>
+     </g>
+    </g>
+   </g>
+  </g>
+ </g>
+</svg>
