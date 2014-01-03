@@ -179,7 +179,69 @@ jack.ask('emma', 'do you have time today?', decide(function (response) {
 
 ## API
 
-TODO: describe API
+Babble has the following factory functions:
+
+- `babble.babbler(id: String) : Babbler`
+  Factory function to create a new Babbler.
+- `babble.run(callback: Function [, next: Block]) : Action`
+  Factory function to create an Action block. The provided callback function
+  is called as `callback(message)` and should not return a result.
+- `babble.decide(callback: Function) : Decision`
+  Factory function to create a Decision block. The callback function is called
+  as `callback(message) : Block`, and must return an instance of `Block`
+  (an Action, Reply, or Decision). The returned block is used as next block in
+  the control flow.
+- `babble.reply(callback: Function [, next: Block]) : Reply`
+  Factory function to create a Reply block. The provided callback function
+  is called as `callback(message)`, where `message` is the latest received
+  message, and must return a result. The returned result is send to the
+  connected peer.
+
+Babble contains the following prototypes. These prototypes are normally
+instantiated via the above mentioned factory functions.
+
+- `babble.Babbler`
+- `babble.block.Block`
+- `babble.block.Action`
+- `babble.block.Decision`
+- `babble.block.Reply`
+- `babble.block.Trigger`
+
+### Babbler
+
+A babbler is created via the factory function `babble.babbler(id: String)`.
+A babbler has the following functions:
+
+- `subscribe([pubsub: Object] [, callback])`
+  Subscribe to a pubsub system.
+  Parameter `pubsub` is an object with properties `subscribe`
+  and `publish`. Babble comes with interfaces to support two
+  pubsub systems: `pubnub`, `pubsub-js`, and `default`. These
+  interfaces are available in the `babble.pubsub` namespace.  If parameter `pubsub` is not provided, babble uses the `default` pubsub system, which works locally.
+  A pubsub system can be specified like:
+
+  ```js
+  babbler.subscribe(babble.pubsub['pubnub'], function () {
+    // connected
+  })
+  ```
+
+- `unsubscribe()`
+  Unsubscribe from the subscribed pubsub system.
+
+- `publish(id: String, message: *)`
+  Send a message to another peer.
+
+- `listen(message: String, next: Block)`
+  Listen for incoming messages. If there is a match, the provided
+  control flow block `next` will be executed.
+
+- `tell(id: String, message: String [, data: JSON])`
+  Send a notification to another peer.
+
+- `ask(id: String, message: String [,data: JSON], next: Block)`
+  Send a question to another peer. When the reply comes in,
+  the provided control flow block `next` is executed.
 
 
 ## Build

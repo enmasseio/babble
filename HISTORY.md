@@ -7,6 +7,7 @@ https://github.com/josdejong/babble
 - Implemented customizable pubsub system.
 - Implemented support for pubnub.
 - Implemented browser support.
+- Documentation and examples added.
 
 
 ## 2013-12-31, version 0.2.0
