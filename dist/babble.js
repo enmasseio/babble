@@ -30,18 +30,19 @@ function Babbler (id) {
 
 /**
  * Subscribe to a pubsub system
- * @param {Object} [pubsub]   A pubsub interface. Must have the following
- *                            functions:
- *                            - subscribe(params: {id: string,
+ * @param {Object} [pubsub]     A pubsub interface. Must have the following
+ *                              functions:
+ *                              - subscribe(params: {id: string,
  *                                message: function, connect: function}) : function
- *                              must return a function which, when invoked,
- *                              unsubscribes again. parameer connect is optional.
- *                            - publish(params: {id: string, message: *})
- *                            A number of interfaces is provided under
- *                            babble.pubsub. Default interface is
- *                            babble.pubsub['default']
- * @param {Function} callback Called when subscription is completed. Called
- *                            without parameters
+ *                                must return a function which, when invoked,
+ *                                unsubscribes again. parameter connect is optional.
+ *                              - publish(id: string, message: *)
+ *                                publish a message
+ *                              A number of interfaces is provided under
+ *                              babble.pubsub. Default interface is
+ *                              babble.pubsub['default']
+ * @param {Function} [callback] Called when subscription is completed. Called
+ *                              without parameters
  * @return {Babbler} self
  */
 Babbler.prototype.subscribe = function subscribe (pubsub, callback) {
@@ -113,15 +114,17 @@ Babbler.prototype.subscribe = function subscribe (pubsub, callback) {
  * Unsubscribe from the pubsub system
  */
 Babbler.prototype.unsubscribe = function unsubscribe () {
+  // TODO: unsubscribe must also have a callback
   // unsubscribe is overridden when running subscribe
   throw new Error('Cannot unsubscribe: not subscribed');
 };
 
 /**
  * Publish a message
- * @param {{id: String, message: *}} params
+ * @param {String} id
+ * @param {*} message
  */
-Babbler.prototype.publish = function publish (params) {
+Babbler.prototype.publish = function publish (id, message) {
   // publish is overridden when running subscribe
   throw new Error('Cannot publish: not subscribed');
 };
@@ -151,19 +154,16 @@ Babbler.prototype.listen = function listen (message, next) {
  * @param {JSON} [data]     Data must be serializable
  */
 Babbler.prototype.tell = function tell (id, message, data) {
-  this.publish({
-    id: id,
-    message: {
-      from: this.id,
-      to: id,
-      message: message,
-      data: data
-    }
+  this.publish(id, {
+    from: this.id,
+    to: id,
+    message: message,
+    data: data
   });
 };
 
 /**
- * Send a notification
+ * Send a question, await a response.
  * @param {String} id       Babbler id
  * @param {String} message
  * @param {JSON} [data]     Data must be serializable
@@ -188,15 +188,13 @@ Babbler.prototype.ask = function ask (id, message, data, next) {
     }
   };
 
-  this.publish({
-    id: id,
-    message: {
-      id: cid,
-      from: this.id,
-      to: id,
-      message: message,
-      data: data
-    }});
+  this.publish(id, {
+    id: cid,
+    from: this.id,
+    to: id,
+    message: message,
+    data: data
+  });
 };
 
 /**
@@ -225,14 +223,11 @@ Babbler.prototype._run = function _run (conversation, message) {
 
   if (block instanceof Reply) {
     // send a response back to the other peer
-    this.publish({
-      id: conversation.peer,
-      message: {
-        id: conversation.id,
-        from: this.id,
-        to: conversation.peer,
-        message: result
-      }
+    this.publish(conversation.peer, {
+      id: conversation.id,
+      from: this.id,
+      to: conversation.peer,
+      message: result
     });
   }
   else { // Decision, Trigger, Action
@@ -267,7 +262,7 @@ exports.babbler = function babbler(id) {
  *                              where response is the incoming message.
  *                              The return value of fn is send back to the
  *                              sender
- * @param {Block} next           The next block
+ * @param {Block} next          The next block
  */
 exports.reply = function reply(callback, next) {
   return new Reply(callback, next);
@@ -287,10 +282,14 @@ exports.decide = function decide(callback) {
  * Create an action block
  * @param {Function} callback   Invoked as fn(response),
  *                              where response is the latest message received.
+ * @param {Block} next          The next block
  */
-exports.run = function run (callback) {
-  return new Action(callback);
+exports.run = function run (callback, next) {
+  return new Action(callback, next);
 };
+
+// export the babbler prototype
+exports.Babbler = Babbler;
 
 // export all flow blocks
 exports.block = require('./block/index');
@@ -304,8 +303,11 @@ var Block = require('./Block');
 /**
  * Action
  * Execute an action.
- * @param {Function} callback   Invoked as fn(response),
- *                              where response is the last received message.
+ * @param {Function} callback   Invoked as fn(response, context),
+ *                              where `response` is the last received message,
+ *                              and `context` is an object where state can
+ *                              be stored during a conversation.
+ *                              The callback should return nothing.
  * @param {Block} [next]        The next block in the control flow
  * @constructor
  * @extends {Block}
@@ -332,11 +334,11 @@ Action.prototype = Object.create(Block.prototype);
 /**
  * Run the block
  * @param {Object} context
- * @param {String} [arg]
+ * @param {String} [arg=undefined]
  * @return {{result: *, block: Block}} next
  */
 Action.prototype.run = function run (context, arg) {
-  var result = this.callback.apply(context, (arg !== undefined) ? [arg] : []);
+  var result = this.callback(arg, context);
 
   if (result !== undefined) {
     throw new Error('Callback of Action returned undefined');
@@ -375,9 +377,11 @@ var Block = require('./Block');
  * Decision
  * A decision is made by executing the provided callback function, which returns
  * a next Action.
- * @param {Function} callback   Invoked as fn(response),
- *                              where response is the latest message received.
- *                              Must return a Block element.
+ * @param {Function} callback   Invoked as fn(response, context),
+ *                              where `response` is the last received message,
+ *                              and `context` is an object where state can
+ *                              be stored during a conversation.
+ *                              The callback must return a Block element.
  * @constructor
  * @extends {Block}
  */
@@ -402,7 +406,7 @@ Decision.prototype = Object.create(Block.prototype);
  * @return {{result: *, block: Block}} next
  */
 Decision.prototype.run = function run (context, arg) {
-  var next = this.callback.apply(context, (arg !== undefined) ? [arg] : []);
+  var next = this.callback(arg, context);
 
   if (next && !(next instanceof Block)) {
     throw new TypeError('Decision function must return a Block');
@@ -422,10 +426,12 @@ var Block = require('./Block');
 /**
  * Reply
  * Handle a reply to a message.
- * @param {Function} callback   Invoked as fn(response),
- *                              where response is the last received message.
- *                              The returned result will be send back to the
- *                              sender.
+ * @param {Function} callback   Invoked as fn(response, context),
+ *                              where `response` is the last received message,
+ *                              and `context` is an object where state can
+ *                              be stored during a conversation.
+ *                              The function must return something, the
+ *                              returned result will be send back to the sender.
  * @param {Block} [next]        The next block in the control flow
  * @constructor
  * @extends {Block}
@@ -456,7 +462,7 @@ Reply.prototype = Object.create(Block.prototype);
  * @return {{result: *, block: Block}} next
  */
 Reply.prototype.run = function run (context, arg) {
-  var result = this.callback.apply(context, (arg !== undefined) ? [arg] : []);
+  var result = this.callback(arg, context);
 
   if (result === undefined) {
     throw new Error('Callback of Reply returned undefined');
@@ -521,7 +527,7 @@ exports.Trigger = require('./Trigger');
 
 /**
  * pubsub-js interface
- * @returns {{subscribe: subscribe, publish: publish}}
+ * @returns {{subscribe: function, publish: function}}
  */
 exports['pubsub-js'] = function () {
   var PubSub = require('pubsub-js');
@@ -540,8 +546,8 @@ exports['pubsub-js'] = function () {
         PubSub.unsubscribe(token);
       };
     },
-    publish: function (params) {
-      PubSub.publish(params.id, params.message);
+    publish: function (id, message) {
+      PubSub.publish(id, message);
     }
   }
 };
@@ -549,7 +555,7 @@ exports['pubsub-js'] = function () {
 /**
  * // pubsub-js interface
  * @param {{publish_key: string, subscribe_key: string}} params
- * @returns {{subscribe: subscribe, publish: publish}}
+ * @returns {{subscribe: function, publish: function}}
  */
 exports['pubnub'] = function (params) {
   var PUBNUB;
@@ -579,10 +585,10 @@ exports['pubnub'] = function (params) {
         pubnub.unsubscribe(params.id);
       }
     },
-    publish: function (params) {
+    publish: function (id, message) {
       pubnub.publish({
-        channel: params.id,
-        message: params.message
+        channel: id,
+        message: message
       });
     }
   }

@@ -22,8 +22,8 @@
       return 25;
     }));
 
-    emma.listen('tell age', babble.run (function (age) {
-      write(this.from + ' is ' +  age + ' years old');
+    emma.listen('tell age', babble.run (function (age, context) {
+      write(context.from + ' is ' +  age + ' years old');
     }));
   });
 

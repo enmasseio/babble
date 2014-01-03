@@ -7,6 +7,8 @@ is modeled as a control flow diagram containing blocks `listen`, `ask`, `tell`,
 `reply`, `decide`, and `run`. Each block can link to a next block in the
 control flow. Conversations are dynamic: a scenario is build programmatically,
 and the blocks can dynamically determine the next block in the scenario.
+During a conversation, a context is available to store the state of the
+conversation.
 
 Babble uses pubsub to communicate between actors. It comes with built in
 support to communicate locally, and has as support for
@@ -58,8 +60,8 @@ emma.listen('ask age', babble.reply(function () {
   return 25;
 }));
 
-jack.ask('emma', 'ask age', babble.run(function (age) {
-  console.log(this.from + ' is ' + age + ' years old');
+jack.ask('emma', 'ask age', babble.run(function (age, context) {
+  console.log(context.from + ' is ' + age + ' years old');
 }));
 ```
 
@@ -93,14 +95,14 @@ emma.listen('ask age', reply(function () {
   return 25;
 }));
 
-emma.listen('tell age', run(function (age) {
-  console.log(this.from + ' is ' +  age + ' years old');
+emma.listen('tell age', run(function (age, context) {
+  console.log(context.from + ' is ' +  age + ' years old');
 }));
 
 jack.tell('emma', 'tell age', 27);
 
-jack.ask('emma', 'ask age', run(function (age) {
-  console.log(this.from + ' is ' + age + ' years old');
+jack.ask('emma', 'ask age', run(function (age, context) {
+  console.log(context.from + ' is ' + age + ' years old');
 }));
 ```
 
@@ -185,16 +187,16 @@ Babble has the following factory functions:
   Factory function to create a new Babbler.
 - `babble.run(callback: Function [, next: Block]) : Action`
   Factory function to create an Action block. The provided callback function
-  is called as `callback(message)` and should not return a result.
+  is called as `callback(response, context)` and should not return a result.
 - `babble.decide(callback: Function) : Decision`
   Factory function to create a Decision block. The callback function is called
-  as `callback(message) : Block`, and must return an instance of `Block`
-  (an Action, Reply, or Decision). The returned block is used as next block in
-  the control flow.
+  as `callback(response, context) : Block`, and must return an instance of
+  `Block` (an Action, Reply, or Decision). The returned block is used as next
+  block in the control flow.
 - `babble.reply(callback: Function [, next: Block]) : Reply`
   Factory function to create a Reply block. The provided callback function
-  is called as `callback(message)`, where `message` is the latest received
-  message, and must return a result. The returned result is send to the
+  is called as `callback(response, context)`, where `response` is the latest
+  received message, and must return a result. The returned result is send to the
   connected peer.
 
 Babble contains the following prototypes. These prototypes are normally
@@ -213,17 +215,16 @@ A babbler is created via the factory function `babble.babbler(id: String)`.
 A babbler has the following functions:
 
 - `subscribe([pubsub: Object] [, callback])`
-  Subscribe to a pubsub system.
-  Parameter `pubsub` is an object with properties `subscribe`
-  and `publish`. Babble comes with interfaces to support two
-  pubsub systems: `pubnub`, `pubsub-js`, and `default`. These
-  interfaces are available in the `babble.pubsub` namespace.  If parameter `pubsub` is not provided, babble uses the `default` pubsub system, which works locally.
+  Subscribe to a pubsub system. Babble comes with interfaces to support various
+  pubsub systems: `pubnub`, `pubsub-js`, and `default`. These interfaces are
+  available in the `babble.pubsub` namespace.  If parameter `pubsub` is not
+  provided, babble uses the `default` pubsub system, which works locally.
   A pubsub system can be specified like:
 
   ```js
   babbler.subscribe(babble.pubsub['pubnub'], function () {
     // connected
-  })
+  });
   ```
 
 - `unsubscribe()`

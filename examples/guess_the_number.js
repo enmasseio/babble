@@ -11,14 +11,14 @@ var MIN = 0,
 
 var emma = babbler('emma').subscribe();
 
-var checkGuess = decide(function (guess) {
-  if (guess < this.number) {
+var checkGuess = decide(function (guess, context) {
+  if (guess < context.number) {
     return reply(function () {
       console.log('emma: higher');
       return 'higher';
     }, checkGuess)
   }
-  else if (guess > this.number) {
+  else if (guess > context.number) {
     return reply(function () {
       console.log('emma: lower');
       return 'lower';
@@ -32,9 +32,9 @@ var checkGuess = decide(function (guess) {
   }
 });
 
-var startGame = reply(function () {
+var startGame = reply(function (response, context) {
   // choose a random value
-  this.number = randomInt(MIN, MAX);
+  context.number = randomInt(MIN, MAX);
 
   console.log('emma: ok I have a number in mind between ' + MIN + ' and ' + MAX);
   return 'ok';
@@ -57,30 +57,30 @@ emma.listen('lets play guess the number', decide(function () {
 
 var jack = babbler('jack').subscribe();
 
-var triumph = function () {
-  console.log('jack: I found it! The correct number is: ' + this.number);
+var triumph = function (response, context) {
+  console.log('jack: I found it! The correct number is: ' + context.number);
 };
 
-var guess = function (response) {
+var guess = function (response, context) {
   if (response == 'higher') {
-    this.lower = this.number + 1;
+    context.lower = context.number + 1;
   }
   else if (response == 'lower') {
-    this.upper = this.number - 1;
+    context.upper = context.number - 1;
   }
 
-  this.number = randomInt(this.lower, this.upper);
-  console.log('jack: guessing ' + this.number + '...');
-  return this.number;
+  context.number = randomInt(context.lower, context.upper);
+  console.log('jack: guessing ' + context.number + '...');
+  return context.number;
 };
 
-var initialize = function () {
-  this.lower = MIN;
-  this.upper = MAX;
+var initialize = function (response, context) {
+  context.lower = MIN;
+  context.upper = MAX;
 
-  this.number = randomInt(this.lower, this.upper);
-  console.log('jack: guessing ' + this.number + '...');
-  return this.number;
+  context.number = randomInt(context.lower, context.upper);
+  console.log('jack: guessing ' + context.number + '...');
+  return context.number;
 };
 
 var whine = function () {
