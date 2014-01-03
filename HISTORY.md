@@ -2,12 +2,17 @@
 https://github.com/josdejong/babble
 
 
-## 2014-01-03, version 0.3.0
+## 2014-01-03, version 0.3.1
+
+- Documentation and examples added.
+- Minor bug fixes and improvements.
+
+
+## 2014-01-02, version 0.3.0
 
 - Implemented customizable pubsub system.
 - Implemented support for pubnub.
 - Implemented browser support.
-- Documentation and examples added.
 
 
 ## 2013-12-31, version 0.2.0
