@@ -29,8 +29,7 @@ emma.listen('do you have time today?', decide(function (response) {
       return 'no';
     });
   }
-})
-);
+}));
 
 jack.ask('emma', 'do you have time today?', decide(function (response) {
   if (response == 'yes') {
