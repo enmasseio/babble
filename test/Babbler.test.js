@@ -158,8 +158,7 @@ describe('Babbler', function() {
           .done();
     });
 
-    // TODO
-    it.skip ('should keep state in the context during the conversation', function(done) {
+    it ('should keep state in the context during the conversation', function(done) {
       emma.listen('question')
           .run(function (response, context) {
             context.a = 1;
@@ -167,20 +166,22 @@ describe('Babbler', function() {
             context.b = 2;
             assert.equal(context.a, 1);
 
-            return new Reply(function (response, context) {
-              assert.equal(response, 'a');
-              assert.equal(context.a, 1);
-              assert.equal(context.b, 2);
-              context.c = 3;
+            return new FlowBuilder(new Reply(function (response, context) {
+                  assert.equal(response, 'a');
+                  assert.equal(context.a, 1);
+                  assert.equal(context.b, 2);
+                  context.c = 3;
 
-              return 'b';
-            }, new Action (function (response, context) {
-              assert.equal(response, 'c');
-              assert.equal(context.a, 1);
-              assert.equal(context.b, 2);
-              assert.equal(context.c, 3);
-              done();
-            }));
+                  return 'b';
+                }))
+                .run(function (response, context) {
+                  assert.equal(response, 'c');
+                  assert.equal(context.a, 1);
+                  assert.equal(context.b, 2);
+                  assert.equal(context.c, 3);
+                  done();
+                })
+                .done();
           })
           .done();
 
