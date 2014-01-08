@@ -1,6 +1,6 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
-    Flow = require('../lib/Flow'),
+    FlowBuilder = require('../lib/FlowBuilder'),
     Reply = require('../lib/block/Reply'),
     Action = require('../lib/block/Action'),
     Decision = require('../lib/block/Decision');
@@ -49,7 +49,7 @@ describe('Babbler', function() {
       var flow = emma.listen('test');
 
       assert.equal(Object.keys(emma.listeners).length, 1);
-      assert.ok(flow instanceof Flow);
+      assert.ok(flow instanceof FlowBuilder);
     });
 
     it ('should throw an error when calling listen wrongly', function () {
