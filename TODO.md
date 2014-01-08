@@ -1,6 +1,7 @@
 # TO DO
 
-- Implement support for a static map with blocks for `Decision` block.
+- Change API to chained.
+- Change Decision(callback) to Decision(decision, flows)
 - Implement error handling
 - Implement support for promises to allow async callback functions
 - Provide the context as function argument instead of as `this`?

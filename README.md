@@ -65,6 +65,10 @@ jack.ask('emma', 'ask age', babble.run(function (age, context) {
 }));
 ```
 
+## Control flow
+
+TODO: describe control flow blocks
+
 
 ## Examples
 
