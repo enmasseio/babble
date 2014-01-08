@@ -26,13 +26,13 @@ function (err, babblers) {
     return 25;
   }));
 
-  babblers.emma.listen('tell age', babble.run (function (age) {
-    console.log(this.from + ' is ' +  age + ' years old');
+  babblers.emma.listen('tell age', babble.run (function (age, context) {
+    console.log(context.from + ' is ' +  age + ' years old');
   }));
 
   babblers.jack.tell('emma', 'tell age', 27);
 
-  babblers.jack.ask('emma', 'ask age', babble.run (function (age) {
-    console.log(this.from + ' is ' + age + ' years old');
+  babblers.jack.ask('emma', 'ask age', babble.run (function (age, context) {
+    console.log(context.from + ' is ' + age + ' years old');
   }));
 });
