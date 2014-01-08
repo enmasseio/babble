@@ -15,7 +15,6 @@ describe('Action', function() {
     assert.throws(function () { Action(function () {}) }, SyntaxError);
     assert.throws(function () { new Action()}, TypeError);
     assert.throws(function () { new Action('bla')}, TypeError);
-    assert.throws(function () { new Action(function () {}, 'bla')}, TypeError);
   });
 
   it('should execute an action without arguments', function () {
@@ -60,8 +59,9 @@ describe('Action', function() {
   });
 
   it('should execute an action with next block', function () {
+    var action = new Action(function () {});
     var nextAction = new Action (function () {});
-    var action = new Action(function () {}, nextAction);
+    action.chain(nextAction);
 
     var next = action.execute();
     assert.strictEqual(next.result, undefined);

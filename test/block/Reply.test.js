@@ -15,7 +15,6 @@ describe('Reply', function() {
     assert.throws(function () { Reply(function () {}) }, SyntaxError);
     assert.throws(function () { new Reply()}, TypeError);
     assert.throws(function () { new Reply('bla')}, TypeError);
-    assert.throws(function () { new Reply(function () {}, 'bla')}, TypeError);
   });
 
   it('should execute a reply without arguments', function () {
@@ -63,12 +62,13 @@ describe('Reply', function() {
   });
 
   it('should execute a reply with next block', function () {
-    var nextAction = new Reply (function () {return 'foo'});
-    var reply = new Reply(function () {return 'foo'}, nextAction);
+    var reply = new Reply(function () {return 'foo'});
+    var nextReply = new Reply (function () {return 'foo'});
+    reply.chain(nextReply);
 
     var next = reply.execute();
     assert.strictEqual(next.result, 'foo');
-    assert.strictEqual(next.block, nextAction);
+    assert.strictEqual(next.block, nextReply);
   });
 
   it('should throw an error when callback does not return a result', function () {

@@ -38,13 +38,6 @@ describe('Babbler', function() {
 
   describe ('listen', function () {
 
-    // TODO: delete old test
-    it ('should listen to a message', function () {
-      emma.listen('test', new Reply(function () {}));
-
-      assert.equal(Object.keys(emma.listeners).length, 1);
-    });
-
     it ('should listen to a message', function () {
       var flow = emma.listen('test');
 
@@ -87,15 +80,18 @@ describe('Babbler', function() {
       emma.listen('add')
           .reply(function (data) {
             return data.a + data.b;
-          });
+          })
+          .done();
 
-      jack.ask('emma', 'add', {a:2, b:3}, new Action(function (result) {
-        assert.equal(result, 5);
-        done();
-      }));
+      jack.ask('emma', 'add', {a:2, b:3})
+          .run(function (result) {
+            assert.equal(result, 5);
+            done();
+          })
+          .done();
     });
 
-    it('should ask a question, reply, and reply on the reply', function(done) {
+    it ('should ask a question, reply, and reply on the reply', function(done) {
       emma.listen('count')
           .reply(function (count) {
             return count + 1;
@@ -103,12 +99,15 @@ describe('Babbler', function() {
           .run(function (count) {
             assert.equal(count, 3);
             done();
-          });
+          })
+          .done();
 
-      jack.ask('emma', 'count', 0, new Reply(function (count) {
-        assert.equal(count, 1);
-        return count + 2;
-      }));
+      jack.ask('emma', 'count', 0)
+          .reply(function (count) {
+            assert.equal(count, 1);
+            return count + 2;
+          })
+          .done();
     });
 
     it('should make a decision during a conversation', function(done) {
@@ -118,15 +117,17 @@ describe('Babbler', function() {
             return 'yes';
           });
 
-      jack.ask('emma', 'are you available?', new Decision(function (response) {
-        assert.equal(response, 'yes');
-        if (response == 'yes') {
-          return new Action(function (response) {
+      jack.ask('emma', 'are you available?')
+          .decide(function (response) {
             assert.equal(response, 'yes');
-            done();
-          });
-        }
-      }));
+            if (response == 'yes') {
+              return new Action(function (response) {
+                assert.equal(response, 'yes');
+                done();
+              });
+            }
+          })
+          .done();
     });
 
     it('should run action nodes', function(done) {
@@ -142,19 +143,23 @@ describe('Babbler', function() {
             return 'yes';
           });
 
-      jack.ask('emma', 'are you available?', new Action(function (response) {
-        assert.equal(response, 'yes');
-        logs.push('log 3');
-      }, new Action(function () {
-        logs.push('log 4');
+      jack.ask('emma', 'are you available?')
+          .run(function (response) {
+            assert.equal(response, 'yes');
+            logs.push('log 3');
+          })
+          .run(function () {
+            logs.push('log 4');
 
-        assert.deepEqual(logs, ['log 1', 'log 2', 'log 3', 'log 4']);
+            assert.deepEqual(logs, ['log 1', 'log 2', 'log 3', 'log 4']);
 
-        done();
-      })));
+            done();
+          })
+          .done();
     });
 
-    it('should keep state in the context during the conversation', function(done) {
+    // TODO
+    it.skip ('should keep state in the context during the conversation', function(done) {
       emma.listen('question')
           .run(function (response, context) {
             context.a = 1;
@@ -176,16 +181,20 @@ describe('Babbler', function() {
               assert.equal(context.c, 3);
               done();
             }));
-          });
+          })
+          .done();
 
-      jack.ask('emma', 'question', 'a', new Action(function (response, context) {
-        context.a = 1;
-      }, new Reply(function (response, context) {
-        assert.equal(response, 'b');
-        assert.equal(context.a, 1);
+      jack.ask('emma', 'question', 'a')
+          .run(function (response, context) {
+            context.a = 1;
+          })
+          .reply(function (response, context) {
+            assert.equal(response, 'b');
+            assert.equal(context.a, 1);
 
-        return 'c';
-      })));
+            return 'c';
+          })
+          .done();
     });
 
   });
