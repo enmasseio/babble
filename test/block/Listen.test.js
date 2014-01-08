@@ -13,11 +13,11 @@ describe('Listen', function() {
     assert.throws(function () { Listen(new Block()) }, SyntaxError);
   });
 
-  it('should run a listener', function () {
+  it('should execute a listener', function () {
     var block = new Block();
     var listener = new Listen(block);
 
-    var next = listener.run();
+    var next = listener.execute();
     assert.strictEqual(next.result, undefined);
     assert.strictEqual(next.block, block);
   });

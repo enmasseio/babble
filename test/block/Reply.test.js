@@ -18,21 +18,21 @@ describe('Reply', function() {
     assert.throws(function () { new Reply(function () {}, 'bla')}, TypeError);
   });
 
-  it('should run a reply without arguments', function () {
+  it('should execute a reply without arguments', function () {
     var reply = new Reply(function (response, context) {
       assert.strictEqual(response, undefined);
       assert.strictEqual(context, undefined);
       return 'foo';
     });
 
-    var next = reply.run();
+    var next = reply.execute();
     assert.deepEqual(next, {
       result: 'foo',
       block: undefined
     })
   });
 
-  it('should run a reply with context', function () {
+  it('should execute a reply with context', function () {
     var context = {a: 2};
     var reply = new Reply(function (response, context) {
       assert.strictEqual(response, undefined);
@@ -40,14 +40,14 @@ describe('Reply', function() {
       return 'foo';
     });
 
-    var next = reply.run(context);
+    var next = reply.execute(context);
     assert.deepEqual(next, {
       result: 'foo',
       block: undefined
     })
   });
 
-  it('should run a reply with context and argument', function () {
+  it('should execute a reply with context and argument', function () {
     var context = {a: 2};
     var reply = new Reply(function (response, context) {
       assert.strictEqual(response, 'hello world');
@@ -55,18 +55,18 @@ describe('Reply', function() {
       return 'foo'
     });
 
-    var next = reply.run(context, 'hello world');
+    var next = reply.execute(context, 'hello world');
     assert.deepEqual(next, {
       result: 'foo',
       block: undefined
     })
   });
 
-  it('should run a reply with next block', function () {
+  it('should execute a reply with next block', function () {
     var nextAction = new Reply (function () {return 'foo'});
     var reply = new Reply(function () {return 'foo'}, nextAction);
 
-    var next = reply.run();
+    var next = reply.execute();
     assert.strictEqual(next.result, 'foo');
     assert.strictEqual(next.block, nextAction);
   });
@@ -76,7 +76,7 @@ describe('Reply', function() {
       return undefined;
     });
 
-    assert.throws(function () {reply.run();});
+    assert.throws(function () {reply.execute();});
   });
 
 });

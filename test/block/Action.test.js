@@ -18,52 +18,52 @@ describe('Action', function() {
     assert.throws(function () { new Action(function () {}, 'bla')}, TypeError);
   });
 
-  it('should run an action without arguments', function () {
+  it('should execute an action without arguments', function () {
     var action = new Action(function (response, context) {
       assert.strictEqual(response, undefined);
       assert.strictEqual(context, undefined);
     });
 
-    var next = action.run();
+    var next = action.execute();
     assert.deepEqual(next, {
       result: undefined,
       block: undefined
     })
   });
 
-  it('should run an action with context', function () {
+  it('should execute an action with context', function () {
     var context = {a: 2};
     var action = new Action(function (response, context) {
       assert.strictEqual(response, undefined);
       assert.deepEqual(context, {a: 2});
     });
 
-    var next = action.run(context);
+    var next = action.execute(context);
     assert.deepEqual(next, {
       result: undefined,
       block: undefined
     })
   });
 
-  it('should run an action with context and argument', function () {
+  it('should execute an action with context and argument', function () {
     var context = {a: 2};
     var action = new Action(function (response, context) {
       assert.strictEqual(response, 'hello world');
       assert.deepEqual(context, {a: 2});
     });
 
-    var next = action.run(context, 'hello world');
+    var next = action.execute(context, 'hello world');
     assert.deepEqual(next, {
       result: undefined,
       block: undefined
     })
   });
 
-  it('should run an action with next block', function () {
+  it('should execute an action with next block', function () {
     var nextAction = new Action (function () {});
     var action = new Action(function () {}, nextAction);
 
-    var next = action.run();
+    var next = action.execute();
     assert.strictEqual(next.result, undefined);
     assert.strictEqual(next.block, nextAction);
   });
@@ -73,7 +73,7 @@ describe('Action', function() {
       return 'oops';
     });
 
-    assert.throws(function () {action.run();});
+    assert.throws(function () {action.execute();});
   });
 
 });

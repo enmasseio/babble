@@ -10,7 +10,7 @@ describe('Block', function() {
 
   it('should refuse to run an (abstract) block', function () {
     var block = new Block();
-    assert.throws(function () {block.run()});
+    assert.throws(function () {block.execute()});
   });
 
 });
