@@ -1,13 +1,17 @@
 !function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.babble=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = require('./lib/babble');
 
-},{"./lib/babble":3}],2:[function(require,module,exports){
+},{"./lib/babble":4}],2:[function(require,module,exports){
 var uuid = require('node-uuid'),
 
     pubsubInterfaces = require('./pubsub'),
+
+    FlowBuilder = require('./FlowBuilder'),
+
     Block = require('./block/Block'),
+    Action = require('./block/Action'),
     Reply = require('./block/Reply'),
-    Trigger = require('./block/Trigger');
+    Start = require('./block/Start');
 
 /**
  * Babbler
@@ -24,7 +28,7 @@ function Babbler (id) {
   }
 
   this.id = id;
-  this.triggers = {};
+  this.listeners = {};
   this.conversations = {};
 }
 
@@ -71,15 +75,15 @@ Babbler.prototype.subscribe = function subscribe (pubsub, callback) {
     id: this.id,
     message: function (message) {
       var conversation, trigger;
-      //console.log('message', me.id, message); // TODO: cleanup
+      // console.log('message', me.id, message); // TODO: cleanup
       // check the open conversations
       conversation = me.conversations[message.id];
       if (conversation) {
         me._run(conversation, message.message);
       }
       else {
-        // check the triggers to start a new conversation
-        trigger = me.triggers[message.message];
+        // check the listeners to start a new conversation
+        trigger = me.listeners[message.message];
         if (trigger) {
           //console.log('message create a new conversation', trigger, trigger.callback); // TODO: cleanup
           // create a new conversation
@@ -132,19 +136,24 @@ Babbler.prototype.publish = function publish (id, message) {
 /**
  * Listen for a specific event
  * @param {String} message
- * @param {Block} next   An Action or Decision block
+ * @return {FlowBuilder} builder
  */
-Babbler.prototype.listen = function listen (message, next) {
+Babbler.prototype.listen = function listen (message) {
   if (typeof message !== 'string') {
     throw new TypeError('Parameter message must be a string');
   }
 
-  if (!(next instanceof Block)) {
-    throw new TypeError('Parameter next must be a Block');
-  }
-
   // TODO: add support for a string as callback
-  this.triggers[message] = new Trigger(next);
+
+  var listener = new Start();
+  var builder = new FlowBuilder(listener);
+
+  var me = this;
+  builder.on('done', function () {
+    me.listeners[message] = listener;
+  });
+
+  return builder;
 };
 
 /**
@@ -164,37 +173,42 @@ Babbler.prototype.tell = function tell (id, message, data) {
 
 /**
  * Send a question, await a response.
- * @param {String} id       Babbler id
+ * @param {String} id             Babbler id
  * @param {String} message
- * @param {JSON} [data]     Data must be serializable
- * @param {Block} next      An Action or Decision block
+ * @param {JSON} [data]           Data must be serializable
+ * @return {FlowBuilder} builder
  */
-Babbler.prototype.ask = function ask (id, message, data, next) {
-  var cid = uuid.v4(); // create an id for this conversation
+Babbler.prototype.ask = function ask (id, message, data) {
+  var me = this;
 
-  // handle optional parameter data
-  if (arguments.length < 4) {
-    next = data;
-    data = undefined;
-  }
+  var start = new Start();
 
-  // create a new conversation
-  this.conversations[cid] = {
-    id: cid,
-    peer: id,
-    next: next,
-    context: {
-      from: id
+  var builder = new FlowBuilder(start);
+  builder.on('done', function () {
+    var cid = uuid.v4(); // create an id for this conversation
+
+    if (start.next) {
+      // create a new conversation
+      me.conversations[cid] = {
+        id: cid,
+        peer: id,
+        next: start.next,
+        context: {
+          from: id
+        }
+      };
     }
-  };
 
-  this.publish(id, {
-    id: cid,
-    from: this.id,
-    to: id,
-    message: message,
-    data: data
+    me.publish(id, {
+      id: cid,
+      from: me.id,
+      to: id,
+      message: message,
+      data: data
+    });
   });
+
+  return builder;
 };
 
 /**
@@ -206,7 +220,7 @@ Babbler.prototype.ask = function ask (id, message, data, next) {
 Babbler.prototype._run = function _run (conversation, message) {
   //console.log('_run', conversation, message); // TODO: cleanup
   var block = conversation.next;
-  var next = block.run(conversation.context, message);
+  var next = block.execute(conversation.context, message);
   var result = next.result;
   conversation.next = next.block;
 
@@ -230,7 +244,7 @@ Babbler.prototype._run = function _run (conversation, message) {
       message: result
     });
   }
-  else { // Decision, Trigger, Action
+  else { // Decision, Listen, Action
     if (conversation.next) {
       // immediately run the next block (with the same message)
       this._run(conversation, message);
@@ -240,8 +254,169 @@ Babbler.prototype._run = function _run (conversation, message) {
 
 module.exports = Babbler;
 
-},{"./block/Block":5,"./block/Reply":7,"./block/Trigger":8,"./pubsub":10,"node-uuid":21}],3:[function(require,module,exports){
+},{"./FlowBuilder":3,"./block/Action":5,"./block/Block":6,"./block/Reply":8,"./block/Start":9,"./pubsub":10,"node-uuid":21}],3:[function(require,module,exports){
+var uuid = require('node-uuid'),
+
+    Block = require('./block/Block'),
+    Action = require('./block/Action'),
+    Reply = require('./block/Reply'),
+    Decision = require('./block/Decision'),
+    Start = require('./block/Start');
+
+/**
+ * Build a conversation flow between two peers
+ * @constructor
+ * @param {Block} block       A control flow block
+ * @param {Block} [first]     First block in this control flow
+ */
+function FlowBuilder (block) {
+  if (!(this instanceof FlowBuilder)) {
+    throw new SyntaxError('Constructor must be called with the new operator');
+  }
+
+  if (!(block instanceof Block)) {
+    throw new TypeError('Parameter block must be a Block');
+  }
+
+  this.first = block;
+  this.last = block;
+
+  this.listeners = {
+    done: []
+  };
+}
+
+/**
+ * Register an event handler for the FlowBuilder
+ * @param {String} event      Available events: 'done'
+ * @param {function} callback Callback is invoked when the event takes place.
+ *                            Is invoked without parameters.
+ */
+FlowBuilder.prototype.on = function on (event, callback) {
+  switch (event) {
+    case 'done':
+      this.listeners.done.push(callback);
+      break;
+
+    default:
+      throw new Error('Unknown event "' + event + '"');
+  }
+};
+
+/**
+ * Trigger an event
+ * @param {string} event
+ * @private
+ */
+FlowBuilder.prototype._trigger = function _trigger (event) {
+  var callbacks = this.listeners[event];
+  if (callbacks) {
+    callbacks.forEach(function (callback) {
+      callback();
+    });
+  }
+};
+
+/**
+ * Finalize this control flow, returns the first block in the created control
+ * flow.
+ * @return {Block} first
+ */
+FlowBuilder.prototype.done = function done () {
+  // TODO: add an error handling block at the end
+
+  this._trigger('done');
+
+  return this.first;
+};
+
+/**
+ * Wait until a message comes in, then execute the callback.
+ * @return {FlowBuilder} self
+ */
+FlowBuilder.prototype.listen = function listen () {
+  var block = new Start();
+
+  this.last.chain(block);
+  this.last = block;
+
+  return this;
+};
+
+/**
+ * Execute the given callback and send the return value to the other peer.
+ * @param {Function} callback   Executed as callback(message: *, context: Object)
+ *                              Must return a result
+ * @return {FlowBuilder} self
+ */
+FlowBuilder.prototype.reply = function reply (callback) {
+  var block = new Reply(callback);
+
+  this.last.chain(block);
+  this.last = block;
+
+  return this;
+};
+
+/**
+ * Execute the given callback, continue with the conversation with returned id
+ *
+ * Syntax:
+ *
+ *     decide(choices)
+ *     decide(decision, choices)
+ *
+ * Where:
+ *
+ *     {Function | Object} [decision]
+ *                              When a `decision` function is provided, the
+ *                              function is invoked as decision(response, context),
+ *                              where `response` is the last received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. The function must
+ *                              return the id for the next block in the control
+ *                              flow, which must be available in the provided
+ *                              `options`. If `decision` is not provided, the
+ *                              next block will be mapped directly from the
+ *                              response.
+ *     {Object.<String, Block>} choices
+ *                              A map with the possible next blocks in the flow
+ *                              The next block is selected by the id returned
+ *                              by the decision function.
+ *
+ * @param arg1   Can be {function} decision or {Object} choices
+ * @param [arg2] {Object} choices
+ * @return {FlowBuilder} self
+ */
+FlowBuilder.prototype.decide = function decide (arg1, arg2) {
+  // TODO: test arguments.length > 2
+  var block = new Decision(arg1, arg2);
+
+  this.last.chain(block);
+  this.last = block;
+
+  return this;
+};
+
+/**
+ * Execute the given callback and continue with the next conversation
+ * @param {Function} callback   Executed as callback(message: *, context: Object)
+ * @return {FlowBuilder} self
+ */
+FlowBuilder.prototype.run = function run (callback) {
+  var block = new Action(callback);
+
+  this.last.chain(block);
+  this.last = block;
+
+  return this;
+};
+
+module.exports = FlowBuilder;
+
+},{"./block/Action":5,"./block/Block":6,"./block/Decision":7,"./block/Reply":8,"./block/Start":9,"node-uuid":21}],4:[function(require,module,exports){
 var Babbler = require('./Babbler'),
+    FlowBuilder = require('./FlowBuilder'),
 
     Reply = require('./block/Reply'),
     Action = require('./block/Action'),
@@ -257,47 +432,78 @@ exports.babbler = function babbler(id) {
 };
 
 /**
- * Create a reply block
- * @param {Function} callback   Invoked as fn(response),
- *                              where response is the incoming message.
- *                              The return value of fn is send back to the
- *                              sender
- * @param {Block} next          The next block
+ * Create a control flow starting with a reply block
+ * @param {Function} callback     Invoked as fn(response),
+ *                                where response is the incoming message.
+ *                                The return value of fn is send back to the
+ *                                sender
+ * @return {FlowBuilder} builder  A flow builder
  */
-exports.reply = function reply(callback, next) {
-  return new Reply(callback, next);
+exports.reply = function reply(callback) {
+  return new FlowBuilder(new Reply(callback));
 };
 
 /**
- * Create a decision block
- * @param {Function} callback   Invoked as fn(response),
- *                              where response is the latest message received.
- *                              Must return a Block element.
+ * Create a control flow starting with a decision block
+ *
+ * Syntax:
+ *
+ *     decide(choices)
+ *     decide(decision, choices)
+ *
+ * Where:
+ *
+ *     {Function | Object} [decision]
+ *                              When a `decision` function is provided, the
+ *                              function is invoked as decision(response, context),
+ *                              where `response` is the last received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. The function must
+ *                              return the id for the next block in the control
+ *                              flow, which must be available in the provided
+ *                              `options`. If `decision` is not provided, the
+ *                              next block will be mapped directly from the
+ *                              response.
+ *     {Object.<String, Block>} choices
+ *                              A map with the possible next blocks in the flow
+ *                              The next block is selected by the id returned
+ *                              by the decision function.
+ *
+ * @param arg1   Can be {function} decision or {Object} choices
+ * @param [arg2] {Object} choices
+ * @return {FlowBuilder} builder  A flow builder
  */
-exports.decide = function decide(callback) {
-  return new Decision(callback);
+exports.decide = function decide(arg1, arg2) {
+  // TODO: test arguments.length > 2
+  return new FlowBuilder(new Decision(arg1, arg2));
 };
 
 /**
- * Create an action block
- * @param {Function} callback   Invoked as fn(response),
- *                              where response is the latest message received.
- * @param {Block} next          The next block
+ * Create a control flow starting with an action block
+ * @param {Function} callback     Invoked as fn(response),
+ *                                where response is the latest message received.
+ * @return {FlowBuilder} builder  A flow builder
  */
-exports.run = function run (callback, next) {
-  return new Action(callback, next);
+exports.run = function run (callback) {
+  return new FlowBuilder(new Action(callback));
 };
 
 // export the babbler prototype
 exports.Babbler = Babbler;
 
 // export all flow blocks
-exports.block = require('./block/index');
+exports.block = {
+  Block: require('./block/Block'),
+  Action: require('./block/Action'),
+  Decision: require('./block/Decision'),
+  Listen: require('./block/Start'),
+  Reply: require('./block/Reply')
+};
 
 // export pubsub interfaces
 exports.pubsub = require('./pubsub');
 
-},{"./Babbler":2,"./block/Action":4,"./block/Decision":6,"./block/Reply":7,"./block/index":9,"./pubsub":10}],4:[function(require,module,exports){
+},{"./Babbler":2,"./FlowBuilder":3,"./block/Action":5,"./block/Block":6,"./block/Decision":7,"./block/Reply":8,"./block/Start":9,"./pubsub":10}],5:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -308,11 +514,10 @@ var Block = require('./Block');
  *                              and `context` is an object where state can
  *                              be stored during a conversation.
  *                              The callback should return nothing.
- * @param {Block} [next]        The next block in the control flow
  * @constructor
  * @extends {Block}
  */
-function Action (callback, next) {
+function Action (callback) {
   if (!(this instanceof Action)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
@@ -321,23 +526,18 @@ function Action (callback, next) {
     throw new TypeError('Parameter callback must be a Function');
   }
 
-  if (next && !(next instanceof Block)) {
-    throw new TypeError('Parameter next must be a Block');
-  }
-
   this.callback = callback;
-  this.next = next;
 }
 
 Action.prototype = Object.create(Block.prototype);
 
 /**
- * Run the block
+ * Execute the block
  * @param {Object} context
  * @param {String} [arg=undefined]
  * @return {{result: *, block: Block}} next
  */
-Action.prototype.run = function run (context, arg) {
+Action.prototype.execute = function execute (context, arg) {
   var result = this.callback(arg, context);
 
   if (result !== undefined) {
@@ -352,7 +552,7 @@ Action.prototype.run = function run (context, arg) {
 
 module.exports = Action;
 
-},{"./Block":5}],5:[function(require,module,exports){
+},{"./Block":6}],6:[function(require,module,exports){
 /**
  * Abstract control flow diagram block
  * @constructor
@@ -360,83 +560,122 @@ module.exports = Action;
 function Block() {}
 
 /**
- * Run the block
+ * Execute the block
  * @param {Object} context
  * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Block.prototype.run = function run (context, arg) {
+Block.prototype.execute = function execute (context, arg) {
   throw new Error('Cannot run an abstract Block');
 };
 
+/**
+ * Specify the next block in the chain
+ * @param {Block} next
+ */
+Block.prototype.chain = function chain(next) {
+  if (!(next instanceof Block)) {
+    throw new TypeError('Parameter next must be a Block');
+  }
+
+  this.next = next;
+};
+
 module.exports = Block;
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
  * Decision
  * A decision is made by executing the provided callback function, which returns
- * a next Action.
- * @param {Function | Object} decision
- *                              When `decision` is a function, the function is
- *                              invoked as decision(response, context),
+ * a next control flow block.
+ *
+ * Syntax:
+ *
+ *     new Decision(choices)
+ *     new Decision(decision, choices)
+ *
+ * Where:
+ *
+ *     {Function | Object} [decision]
+ *                              When a `decision` function is provided, the
+ *                              function is invoked as decision(response, context),
  *                              where `response` is the last received message,
  *                              and `context` is an object where state can be
  *                              stored during a conversation. The function must
- *                              return a Block element.
- *                              When `decision` is an object, it must contain
- *                              a map with response:String as keys and
- *                              next:Block as next control flow block.
+ *                              return the id for the next block in the control
+ *                              flow, which must be available in the provided
+ *                              `options`. If `decision` is not provided, the
+ *                              next block will be mapped directly from the
+ *                              response.
+ *     {Object.<String, Block>} choices
+ *                              A map with the possible next blocks in the flow
+ *                              The next block is selected by the id returned
+ *                              by the decision function.
+ *
+ * @param arg1   Can be {function} decision or {Object} choices
+ * @param [arg2] {Object} choices
  * @constructor
  * @extends {Block}
  */
-function Decision (decision) {
+function Decision (arg1, arg2) {
+  var decision, choices;
+
   if (!(this instanceof Decision)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
 
-  if ((typeof decision === 'function')) {
-    // great, a function (should return a Block).
-  }
-  else if (decision) {
-    // a map with properties. Test whether all property values are blocks
-    Object.keys(decision).forEach(function (key) {
-      if (!(decision[key] instanceof Block)) {
-        throw new TypeError('Decision map must contain Blocks');
-      }
-    });
+  if (typeof arg1 === 'function') {
+    decision = arg1;
+    choices = arg2;
   }
   else {
-    throw new TypeError('Function or Object expected as first parameter');
+    decision = null;
+    choices = arg1;
   }
 
-  // other Blocks do have a second argument `next` so that is an easy pitfall...
-  if (arguments[1] instanceof Block) {
-    throw new SyntaxError('Decision doesn\'t accept a second parameter');
+  if (!decision) {
+    decision = function (response) {
+      return response;
+    }
   }
+  else if ((typeof decision !== 'function')) {
+    throw new TypeError('Parameter decision must be a function');
+  }
+  if (!choices || choices instanceof Function) {
+    throw new TypeError('Parameter choices must be an object');
+  }
+
+  // Test whether all choices values are blocks
+  Object.keys(choices).forEach(function (id) {
+    if (!(choices[id] instanceof Block)) {
+      throw new TypeError('choices must be an object containing Blocks');
+    }
+  });
 
   this.decision = decision;
+  this.choices = choices;
 }
 
 Decision.prototype = Object.create(Block.prototype);
 
 /**
- * Run the block
+ * Execute the block
  * @param {Object} context
  * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Decision.prototype.run = function run (context, arg) {
-  var next;
-  if (typeof this.decision === 'function') {
-    next = this.decision(arg, context);
+Decision.prototype.execute = function execute (context, arg) {
+  var id = this.decision(arg, context);
 
-    if (next && !(next instanceof Block)) {
-      throw new TypeError('Decision function must return a Block');
-    }
+  if (typeof id !== 'string') {
+    throw new TypeError('Decision function must return a string containing ' +
+        'the id of the next block');
   }
-  else {
-    next = this.decision[arg];
+
+  var next = this.choices[id];
+  if (!next) {
+    throw new Error('Block with id "' + id + '" not found');
   }
 
   return {
@@ -447,7 +686,7 @@ Decision.prototype.run = function run (context, arg) {
 
 module.exports = Decision;
 
-},{"./Block":5}],7:[function(require,module,exports){
+},{"./Block":6}],8:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -459,11 +698,10 @@ var Block = require('./Block');
  *                              be stored during a conversation.
  *                              The function must return something, the
  *                              returned result will be send back to the sender.
- * @param {Block} [next]        The next block in the control flow
  * @constructor
  * @extends {Block}
  */
-function Reply (callback, next) {
+function Reply (callback) {
   if (!(this instanceof Reply)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
@@ -472,23 +710,18 @@ function Reply (callback, next) {
     throw new TypeError('Parameter callback must be a Function');
   }
 
-  if (next && !(next instanceof Block)) {
-    throw new TypeError('Parameter next must be a Block');
-  }
-
   this.callback = callback;
-  this.next = next;
 }
 
 Reply.prototype = Object.create(Block.prototype);
 
 /**
- * Run the block
+ * Execute the block
  * @param {Object} context
  * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Reply.prototype.run = function run (context, arg) {
+Reply.prototype.execute = function execute (context, arg) {
   var result = this.callback(arg, context);
 
   if (result === undefined) {
@@ -503,53 +736,38 @@ Reply.prototype.run = function run (context, arg) {
 
 module.exports = Reply;
 
-},{"./Block":5}],8:[function(require,module,exports){
+},{"./Block":6}],9:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
- * Trigger
- * Create an event trigger. When triggered, the next Block element will be
- * invoked.
- * @param {Block} next The next block in the control flow
+ * Start of a control flow
  * @constructor
  * @extends {Block}
  */
-function Trigger (next) {
-  if (!(this instanceof Trigger)) {
+function Start () {
+  if (!(this instanceof Start)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
-
-  if (!(next instanceof Block)) {
-    throw new TypeError('Parameter next must be a Block');
-  }
-
-  this.next = next;
 }
 
-Trigger.prototype = Object.create(Block.prototype);
+Start.prototype = Object.create(Block.prototype);
 
 /**
- * Run the block
+ * Execute the block
  * @param {Object} context
  * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Trigger.prototype.run = function run (context, arg) {
+Start.prototype.execute = function execute (context, arg) {
   return {
     result: undefined,
     block: this.next
   };
 };
 
-module.exports = Trigger;
+module.exports = Start;
 
-},{"./Block":5}],9:[function(require,module,exports){
-exports.Block = require('./Block');
-exports.Action = require('./Action');
-exports.Decision = require('./Decision');
-exports.Reply = require('./Reply');
-exports.Trigger = require('./Trigger');
-},{"./Action":4,"./Block":5,"./Decision":6,"./Reply":7,"./Trigger":8}],10:[function(require,module,exports){
+},{"./Block":6}],10:[function(require,module,exports){
 // built-in pubsub interfaces
 
 /**

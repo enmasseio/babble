@@ -1,38 +1,40 @@
-var babble = require('../index'),
-    babbler = babble.babbler,
-    decide = babble.decide,
-    reply = babble.reply,
-    run = babble.run;
+var babble = require('../index');
 
 var MIN = 0,
     MAX = 50;
 
 /* -------------------------------------------------------------------------- */
 
-var emma = babbler('emma').subscribe();
+var emma = babble.babbler('emma').subscribe();
 
-var checkGuess = decide(function (guess, context) {
+var checkGuess = babble.decide(function (guess, context) {
   if (guess < context.number) {
-    return reply(function () {
-      console.log('emma: higher');
-      return 'higher';
-    }, checkGuess)
+    return 'higher';
   }
   else if (guess > context.number) {
-    return reply(function () {
-      console.log('emma: lower');
-      return 'lower';
-    }, checkGuess)
+    return 'lower';
   }
   else  {
-    return reply(function () {
-      console.log('emma: right!');
-      return 'right';
-    });
+    return 'right';
   }
+}, {
+  higher: babble.reply(function () {
+        console.log('emma: higher');
+        return 'higher';
+      })
+      .reply(checkGuess), // TODO: this doesn't work
+  lower: babble.reply(function () {
+        console.log('emma: lower');
+        return 'lower';
+      })
+      .reply(checkGuess), // TODO: this doesn't work
+  right: babble.reply(function () {
+        console.log('emma: right!');
+        return 'right';
+      })
 });
 
-var startGame = reply(function (response, context) {
+var startGame = babble.reply(function (response, context) {
   // choose a random value
   context.number = randomInt(MIN, MAX);
 
@@ -55,7 +57,7 @@ emma.listen('lets play guess the number', decide(function () {
 
 /* -------------------------------------------------------------------------- */
 
-var jack = babbler('jack').subscribe();
+var jack = babble.babbler('jack').subscribe();
 
 var triumph = function (response, context) {
   console.log('jack: I found it! The correct number is: ' + context.number);

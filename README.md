@@ -56,13 +56,17 @@ var babble = require('babble');
 var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
-emma.listen('ask age', babble.reply(function () {
-  return 25;
-}));
+emma.listen('ask age')
+    .reply(function () {
+      return 25;
+    }))
+    .done();
 
-jack.ask('emma', 'ask age', babble.run(function (age, context) {
-  console.log(context.from + ' is ' + age + ' years old');
-}));
+jack.ask('emma', 'ask age')
+.run(function (age, context) {
+      console.log(context.from + ' is ' + age + ' years old');
+    }))
+    .done();
 ```
 
 ## Control flow
@@ -87,27 +91,31 @@ This scenario can be represented by the following control flow diagram:
 The scenario is programmed as:
 
 ```js
-var babble = require('babble'),
-    babbler = babble.babbler,
-    reply = babble.reply,
-    run = babble.run;
+var babble = require('babble');
 
-var emma = babbler('emma').subscribe(),
-    jack = babbler('jack').subscribe();
+var emma = babble.babbler('emma').subscribe(),
+    jack = babble.babbler('jack').subscribe();
 
-emma.listen('ask age', reply(function () {
-  return 25;
-}));
+emma.listen('ask age')
+    .reply(function () {
+      return 25;
+    })
+    .done();
 
-emma.listen('tell age', run(function (age, context) {
-  console.log(context.from + ' is ' +  age + ' years old');
-}));
+emma.listen('tell age')
+    .run(function (age, context) {
+      console.log(context.from + ' is ' +  age + ' years old');
+    })
+    .done();
 
 jack.tell('emma', 'tell age', 27);
 
-jack.ask('emma', 'ask age', run(function (age, context) {
-  console.log(context.from + ' is ' + age + ' years old');
-}));
+jack.ask('emma', 'ask age')
+    .run(function (age, context) {
+      console.log(context.from + ' is ' + age + ' years old');
+    })
+    .done();
+
 ```
 
 ### Have a conversation
@@ -123,62 +131,67 @@ This scenario can be represented by the following control flow diagram:
 The scenario is coded as:
 
 ```js
-var babble = require('babble'),
-    babbler = babble.babbler,
-    reply = babble.reply,
-    run = babble.run,
-    decide = babble.decide;
+var babble = require('babble');
 
-var emma = babbler('emma').subscribe(),
-    jack = babbler('jack').subscribe();
+var emma = babble.babbler('emma').subscribe(),
+    jack = babble.babbler('jack').subscribe();
 
-emma.listen('do you have time today?', decide(function (response) {
-  if (Math.random() > 0.4) {
-    return reply(function () {
-      return 'yes';
-    }, decide(function (response) {
-      if (response == 'can we meet at 15:00?' && Math.random() > 0.5) {
-        return reply(function () {
-          return 'ok';
-        });
-      }
-      else {
-        return reply(function () {
-          return 'no';
-        })
-      }
-    }));
-  }
-  else {
-    return reply(function () {
-      return 'no';
-    });
-  }
-}));
+emma.listen('do you have time today?')
+    .decide(function (response) {
+      return (Math.random() > 0.4) ? 'yes' : 'no';
+    }, {
+      yes: babble.reply(function () {
+            return 'yes';
+          })
+          .decide(function (response) {
+            if (response == 'can we meet at 15:00?' && Math.random() > 0.5) {
+              return 'ok';
+            }
+            else {
+              return 'no';
+            }
+          }, {
+            ok: babble.reply(function () {
+                  return 'ok';
+                })
+                .done(),
+            no: babble.reply(function () {
+                  return 'no';
+                })
+                .done()
+          })
+          .done(),
+      no: babble.reply(function () {
+            return 'no';
+          })
+          .done()
+    })
+    .done();
 
-jack.ask('emma', 'do you have time today?', decide(function (response) {
-  if (response == 'yes') {
-    return reply(function () {
-      return 'can we meet at 15:00?';
-    }, decide(function (response) {
-      if (response == 'ok') {
-        return run(function () {
-          console.log('emma agreed');
-        });
-      }
-      else {
-        return run(function () {
-          console.log('emma didn\'t agree');
-        });
-      }
-    }));
-  }
-  else {
-    return run(function () {
-      console.log('emma has no time');
-    });
-  }
-}));
+jack.ask('emma', 'do you have time today?')
+    .decide({
+      yes: babble.reply(function () {
+            return 'can we meet at 15:00?';
+          })
+          .decide(function (response) {
+            return (response == 'ok') ? 'ok': 'notOk';
+          }, {
+            ok: babble.run(function () {
+                  console.log('emma agreed');
+                })
+                .done(),
+            notOk: babble.run(function () {
+                  console.log('emma didn\'t agree');
+                })
+                .done()
+          })
+          .done(),
+      no: babble.run(function () {
+            console.log('emma has no time');
+          })
+          .done()
+    })
+    .done();
 ```
 
 
