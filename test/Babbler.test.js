@@ -126,12 +126,12 @@ describe('Babbler', function() {
       jack.ask('emma', 'are you available?')
           .decide(function (response) {
             assert.equal(response, 'yes');
-            if (response == 'yes') {
-              return new Action(function (response) {
-                assert.equal(response, 'yes');
-                done();
-              });
-            }
+            return response;
+          }, {
+            yes: new Action(function (response) {
+              assert.equal(response, 'yes');
+              done();
+            })
           })
           .done();
     });
@@ -173,7 +173,9 @@ describe('Babbler', function() {
             context.b = 2;
             assert.equal(context.a, 1);
 
-            return new FlowBuilder(new Reply(function (response, context) {
+            return 'first'
+          }, {
+            first: new FlowBuilder(new Reply(function (response, context) {
                   assert.equal(response, 'a');
                   assert.equal(context.a, 1);
                   assert.equal(context.b, 2);
@@ -188,7 +190,7 @@ describe('Babbler', function() {
                   assert.equal(context.c, 3);
                   done();
                 })
-                .done();
+                .done()
           })
           .done();
 

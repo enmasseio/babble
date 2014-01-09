@@ -25,7 +25,7 @@ describe('babbler', function() {
   });
 
   it('should create a flow starting with a decision block', function() {
-    var builder = babble.decide(function () {});
+    var builder = babble.decide(function () {}, {});
     assert.ok(builder instanceof FlowBuilder);
     assert.ok(builder.done() instanceof Decision);
   });
