@@ -18,17 +18,19 @@
   });
 
   var emma = babble.babbler('emma').subscribe(pubnub, function () {
-    emma.listen('ask age')
-        .reply(function (response) {
+    emma.listen('ask age',
+        babble.reply(function (response) {
           return 25;
         })
-        .done();
+        .done()
+    );
 
-    emma.listen('tell age')
-        .run (function (age, context) {
+    emma.listen('tell age',
+        babble.run (function (age, context) {
           write(context.from + ' is ' +  age + ' years old');
         })
-        .done();
+        .done()
+    );
   });
 
   function write (message) {

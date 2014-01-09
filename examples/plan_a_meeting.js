@@ -4,8 +4,8 @@ var babble = require('../index'),
 var emma = babbler('emma').subscribe(),
     jack = babbler('jack').subscribe();
 
-emma.listen('do you have time today?')
-    .decide(function (response) {
+emma.listen('do you have time today?',
+    babble.decide(function (response) {
       return (Math.random() > 0.4) ? 'yes' : 'no';
     }, {
       yes: babble.reply(function () {
@@ -34,10 +34,11 @@ emma.listen('do you have time today?')
           })
           .done()
     })
-    .done();
+    .done()
+);
 
-jack.ask('emma', 'do you have time today?')
-    .decide({
+jack.ask('emma', 'do you have time today?',
+    babble.decide({
       yes: babble.reply(function () {
             return 'can we meet at 15:00?';
           })
@@ -59,4 +60,5 @@ jack.ask('emma', 'do you have time today?')
           })
           .done()
     })
-    .done();
+    .done()
+);

@@ -22,23 +22,26 @@ async.parallel({
   }
 },
 function (err, babblers) {
-  babblers.emma.listen('ask age')
-      .reply(function (response) {
+  babblers.emma.listen('ask age',
+      babble.reply(function (response) {
         return 25;
       })
-      .done();
+      .done()
+  );
 
-  babblers.emma.listen('tell age')
-      .run (function (age, context) {
+  babblers.emma.listen('tell age',
+      babble.run (function (age, context) {
         console.log(context.from + ' is ' +  age + ' years old');
       })
-      .done();
+      .done()
+  );
 
   babblers.jack.tell('emma', 'tell age', 27);
 
-  babblers.jack.ask('emma', 'ask age')
-      .run (function (age, context) {
+  babblers.jack.ask('emma', 'ask age',
+      babble.run (function (age, context) {
         console.log(context.from + ' is ' + age + ' years old');
       })
-      .done();
+      .done()
+  );
 });

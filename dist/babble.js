@@ -136,24 +136,20 @@ Babbler.prototype.publish = function publish (id, message) {
 /**
  * Listen for a specific event
  * @param {String} message
- * @return {FlowBuilder} builder
+ * @param {Block} start     Start block of a control flow.
  */
-Babbler.prototype.listen = function listen (message) {
+Babbler.prototype.listen = function listen (message, start) {
   if (typeof message !== 'string') {
     throw new TypeError('Parameter message must be a string');
   }
 
+  if (!start instanceof Block) {
+    throw new TypeError('Parameter start must be a Block');
+  }
+
   // TODO: add support for a string as callback
 
-  var listener = new Start();
-  var builder = new FlowBuilder(listener);
-
-  var me = this;
-  builder.on('done', function () {
-    me.listeners[message] = listener;
-  });
-
-  return builder;
+  this.listeners[message] = start;
 };
 
 /**
@@ -176,39 +172,37 @@ Babbler.prototype.tell = function tell (id, message, data) {
  * @param {String} id             Babbler id
  * @param {String} message
  * @param {JSON} [data]           Data must be serializable
- * @return {FlowBuilder} builder
+ * @param {Block} start           Start block for the control flow
  */
-Babbler.prototype.ask = function ask (id, message, data) {
-  var me = this;
+Babbler.prototype.ask = function ask (id, message, data, start) {
+  var cid = uuid.v4(); // create an id for this conversation
 
-  var start = new Start();
+  if (data instanceof Block) {
+    start = data;
+    data = undefined;
+  }
 
-  var builder = new FlowBuilder(start);
-  builder.on('done', function () {
-    var cid = uuid.v4(); // create an id for this conversation
+  if (!start instanceof Block) {
+    throw new TypeError('Parameter start must be a Block');
+  }
 
-    if (start.next) {
-      // create a new conversation
-      me.conversations[cid] = {
-        id: cid,
-        peer: id,
-        next: start.next,
-        context: {
-          from: id
-        }
-      };
+  // create a new conversation
+  this.conversations[cid] = {
+    id: cid,
+    peer: id,
+    next: start,
+    context: {
+      from: id
     }
+  };
 
-    me.publish(id, {
-      id: cid,
-      from: me.id,
-      to: id,
-      message: message,
-      data: data
-    });
+  this.publish(id, {
+    id: cid,
+    from: this.id,
+    to: id,
+    message: message,
+    data: data
   });
-
-  return builder;
 };
 
 /**
@@ -267,7 +261,6 @@ var uuid = require('node-uuid'),
  * Build a conversation flow between two peers
  * @constructor
  * @param {Block} block       A control flow block
- * @param {Block} [first]     First block in this control flow
  */
 function FlowBuilder (block) {
   if (!(this instanceof FlowBuilder)) {
@@ -331,19 +324,6 @@ FlowBuilder.prototype.done = function done () {
 };
 
 /**
- * Wait until a message comes in, then execute the callback.
- * @return {FlowBuilder} self
- */
-FlowBuilder.prototype.listen = function listen () {
-  var block = new Start();
-
-  this.last.chain(block);
-  this.last = block;
-
-  return this;
-};
-
-/**
  * Execute the given callback and send the return value to the other peer.
  * @param {Function} callback   Executed as callback(message: *, context: Object)
  *                              Must return a result
@@ -352,6 +332,18 @@ FlowBuilder.prototype.listen = function listen () {
 FlowBuilder.prototype.reply = function reply (callback) {
   var block = new Reply(callback);
 
+  this.last.chain(block);
+  this.last = block;
+
+  return this;
+};
+
+/**
+ * Append a next block to the control flow
+ * @param {Block} block        Next block in the control flow
+ * @return {FlowBuilder} self
+ */
+FlowBuilder.prototype.then = function then (block) {
   this.last.chain(block);
   this.last = block;
 
@@ -488,8 +480,18 @@ exports.run = function run (callback) {
   return new FlowBuilder(new Action(callback));
 };
 
+/**
+ * Create a control flow starting with given block
+ * @param {Block} block        First block in the control flow
+ * @return {FlowBuilder} builder
+ */
+exports.then = function then (block) {
+  return new FlowBuilder(block);
+};
+
 // export the babbler prototype
 exports.Babbler = Babbler;
+exports.FlowBuilder = FlowBuilder;
 
 // export all flow blocks
 exports.block = {

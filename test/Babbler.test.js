@@ -1,6 +1,7 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
     FlowBuilder = require('../lib/FlowBuilder'),
+    Block = require('../lib/block/Block'),
     Reply = require('../lib/block/Reply'),
     Action = require('../lib/block/Action'),
     Decision = require('../lib/block/Decision');
@@ -39,11 +40,9 @@ describe('Babbler', function() {
   describe ('listen', function () {
 
     it ('should listen to a message', function () {
-      var builder = emma.listen('test');
-      builder.done();
+      emma.listen('test', new Block());
 
       assert.equal(Object.keys(emma.listeners).length, 1);
-      assert.ok(builder instanceof FlowBuilder);
     });
 
     it ('should throw an error when calling listen wrongly', function () {
@@ -56,23 +55,25 @@ describe('Babbler', function() {
   describe ('tell', function () {
     
     it('should tell a message', function(done) {
-      emma.listen('test')
-          .run(function (data) {
+      emma.listen('test',
+          new FlowBuilder(new Action(function (data) {
             assert.equal(data, null);
             done();
-          })
-          .done();
+          }))
+          .done()
+      );
 
       jack.tell('emma', 'test');
     });
 
     it('should tell a message with data', function(done) {
-      emma.listen('test')
-          .run(function (data) {
+      emma.listen('test',
+          new FlowBuilder(new Action(function (data) {
             assert.deepEqual(data, {a:2, b:3});
             done();
-          })
-          .done();
+          }))
+          .done()
+      );
 
       jack.tell('emma', 'test', {a:2, b:3});
     });
@@ -82,49 +83,54 @@ describe('Babbler', function() {
   describe ('ask', function () {
 
     it('should ask a question and reply', function(done) {
-      emma.listen('add')
-          .reply(function (data) {
+      emma.listen('add',
+          new FlowBuilder(new Reply(function (data) {
             return data.a + data.b;
-          })
-          .done();
+          }))
+          .done()
+      );
 
-      jack.ask('emma', 'add', {a:2, b:3})
-          .run(function (result) {
+      jack.ask('emma', 'add', {a:2, b:3},
+          new FlowBuilder(new Action(function (result) {
             assert.equal(result, 5);
             done();
-          })
-          .done();
+          }))
+          .done()
+      );
     });
 
     it ('should ask a question, reply, and reply on the reply', function(done) {
-      emma.listen('count')
-          .reply(function (count) {
+      emma.listen('count',
+          new FlowBuilder(new Reply(function (count) {
             return count + 1;
-          })
+          }))
           .run(function (count) {
             assert.equal(count, 3);
             done();
           })
-          .done();
+          .done()
+      );
 
-      jack.ask('emma', 'count', 0)
-          .reply(function (count) {
+      jack.ask('emma', 'count', 0,
+          new FlowBuilder(new Reply(function (count) {
             assert.equal(count, 1);
             return count + 2;
-          })
-          .done();
+          }))
+          .done()
+      );
     });
 
     it('should make a decision during a conversation', function(done) {
-      emma.listen('are you available?')
-          .reply(function (data) {
+      emma.listen('are you available?',
+          new FlowBuilder(new Reply(function (data) {
             assert.strictEqual(data, undefined);
             return 'yes';
-          })
-          .done();
+          }))
+          .done()
+      );
 
-      jack.ask('emma', 'are you available?')
-          .decide(function (response) {
+      jack.ask('emma', 'are you available?',
+          new FlowBuilder(new Decision(function (response) {
             assert.equal(response, 'yes');
             return response;
           }, {
@@ -132,29 +138,31 @@ describe('Babbler', function() {
               assert.equal(response, 'yes');
               done();
             })
-          })
-          .done();
+          }))
+          .done()
+      );
     });
 
     it('should run action nodes', function(done) {
       var logs = [];
 
-      emma.listen('are you available?')
-          .run(function (response) {
+      emma.listen('are you available?',
+          new FlowBuilder(new Action(function (response) {
             logs.push('log 1');
-          })
+          }))
           .reply(function (response) {
             logs.push('log 2');
             assert.strictEqual(response, undefined);
             return 'yes';
           })
-          .done();
+          .done()
+      );
 
-      jack.ask('emma', 'are you available?')
-          .run(function (response) {
+      jack.ask('emma', 'are you available?',
+          new FlowBuilder(new Action(function (response) {
             assert.equal(response, 'yes');
             logs.push('log 3');
-          })
+          }))
           .run(function () {
             logs.push('log 4');
 
@@ -162,14 +170,16 @@ describe('Babbler', function() {
 
             done();
           })
-          .done();
+          .done()
+      );
     });
 
     it ('should keep state in the context during the conversation', function(done) {
-      emma.listen('question')
-          .run(function (response, context) {
+      emma.listen('question',
+          new FlowBuilder(new Action(function (response, context) {
             context.a = 1;
-          }).decide(function (response, context) {
+          }))
+          .decide(function (response, context) {
             context.b = 2;
             assert.equal(context.a, 1);
 
@@ -192,19 +202,21 @@ describe('Babbler', function() {
                 })
                 .done()
           })
-          .done();
+          .done()
+      );
 
-      jack.ask('emma', 'question', 'a')
-          .run(function (response, context) {
+      jack.ask('emma', 'question', 'a',
+          new FlowBuilder(new Action(function (response, context) {
             context.a = 1;
-          })
+          }))
           .reply(function (response, context) {
             assert.equal(response, 'b');
             assert.equal(context.a, 1);
 
             return 'c';
           })
-          .done();
+          .done()
+      );
     });
 
   });
