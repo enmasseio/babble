@@ -1,6 +1,6 @@
 # TO DO
 
-- Change API to chained.
+- Introduce flow blocks Listen and Send?
 - Change Decision(callback) to Decision(decision, flows)
 - Implement error handling
 - Implement support for promises to allow async callback functions
