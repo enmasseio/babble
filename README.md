@@ -249,35 +249,34 @@ A babbler has the following functions:
 - `publish(id: String, message: *)`
   Send a message to another peer.
 
-- `listen(message: String, start: Block)`
-  Listen for incoming messages. If there is a match, the provided
-  control flow block `start` will be executed.
+- `listen(message: String) : Block`
+  Listen for incoming messages. If there is a match, the returned control flow
+  block will be executed. Other blocks can be chained to the returned block.
 
 - `tell(id: String, message: String [, data: JSON])`
   Send a notification to another peer.
 
-- `ask(id: String, message: String [,data: JSON], start: Block)`
-  Send a question to another peer. When the reply comes in,
-  the provided control flow block `start` is executed.
+- `ask(id: String, message: String [,data: JSON]) : Block`
+  Send a question to another peer. Returns a `start` Block which is executed
+  When the reply comes in. Other blocks can be chained to the returned block.
 
-### FlowBuilder
+### Block
 
-The FlowBuilder is a utility to build flows using a chained API.
-A FlowBuilder is created via the factory functions available in `babble`
-(`reply`, `decide`, `run`, `then`). A control flow is finalized after calling
-`done`, which returns the first block in the created flow.
+Blocks can be created via the factory functions available in `babble`
+(`reply`, `decide`, `run`, `then`), or in a Babbler (`listen`, `ask`).
+Blocks can be chained together, resulting in a control flow.
 
-The FlowBuilder has the following functions:
+A Block has the following functions:
 
 - `done() : Block`
-  Finalize the control flow, returns the start block of the flow.
-- `reply(callback: Function) : FlowBuilder`
+  Finalize the control flow, returns the first block of the flow.
+- `reply(callback: Function) : Block`
   Append a Reply block to the control flow.
-- `then(block : Block) : FlowBuilder`
+- `then(block : Block) : Block`
   Append an arbitrary block to the control flow.
-- `decide([decision: function, ] choices: Object<String, Block>) : FlowBuilder`
+- `decide([decision: function, ] choices: Object<String, Block>) : Block`
   Append a decision block to the control flow.
-- `run(callback: Function) : FlowBuilder`
+- `run(callback: Function) : Block`
   Append an Action block to the control flow.
 
 
