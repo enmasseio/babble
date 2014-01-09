@@ -1,8 +1,7 @@
-var babble = require('../index'),
-    babbler = babble.babbler;
+var babble = require('../index');
 
-var emma = babbler('emma').subscribe(),
-    jack = babbler('jack').subscribe();
+var emma = babble.babbler('emma').subscribe(),
+    jack = babble.babbler('jack').subscribe();
 
 emma.listen('do you have time today?')
     .decide(function (response) {
