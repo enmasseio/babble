@@ -39,10 +39,11 @@ describe('Babbler', function() {
   describe ('listen', function () {
 
     it ('should listen to a message', function () {
-      var flow = emma.listen('test');
+      var builder = emma.listen('test');
+      builder.done();
 
       assert.equal(Object.keys(emma.listeners).length, 1);
-      assert.ok(flow instanceof FlowBuilder);
+      assert.ok(builder instanceof FlowBuilder);
     });
 
     it ('should throw an error when calling listen wrongly', function () {
@@ -55,19 +56,23 @@ describe('Babbler', function() {
   describe ('tell', function () {
     
     it('should tell a message', function(done) {
-      emma.listen('test').run(function (data) {
-        assert.equal(data, null);
-        done();
-      });
+      emma.listen('test')
+          .run(function (data) {
+            assert.equal(data, null);
+            done();
+          })
+          .done();
 
       jack.tell('emma', 'test');
     });
 
     it('should tell a message with data', function(done) {
-      emma.listen('test').run(function (data) {
-        assert.deepEqual(data, {a:2, b:3});
-        done();
-      });
+      emma.listen('test')
+          .run(function (data) {
+            assert.deepEqual(data, {a:2, b:3});
+            done();
+          })
+          .done();
 
       jack.tell('emma', 'test', {a:2, b:3});
     });
@@ -112,10 +117,11 @@ describe('Babbler', function() {
 
     it('should make a decision during a conversation', function(done) {
       emma.listen('are you available?')
-          .reply(function (data  ) {
+          .reply(function (data) {
             assert.strictEqual(data, undefined);
             return 'yes';
-          });
+          })
+          .done();
 
       jack.ask('emma', 'are you available?')
           .decide(function (response) {
@@ -141,7 +147,8 @@ describe('Babbler', function() {
             logs.push('log 2');
             assert.strictEqual(response, undefined);
             return 'yes';
-          });
+          })
+          .done();
 
       jack.ask('emma', 'are you available?')
           .run(function (response) {
