@@ -64,7 +64,7 @@ describe('Reply', function() {
   it('should execute a reply with next block', function () {
     var reply = new Reply(function () {return 'foo'});
     var nextReply = new Reply (function () {return 'foo'});
-    reply.chain(nextReply);
+    reply.then(nextReply);
 
     var next = reply.execute();
     assert.strictEqual(next.result, 'foo');

@@ -16,7 +16,7 @@ describe('Listen', function() {
   it('should execute a start block', function () {
     var start = new Start();
     var block = new Block();
-    start.chain(block);
+    start.then(block);
 
     var next = start.execute();
     assert.strictEqual(next.result, undefined);

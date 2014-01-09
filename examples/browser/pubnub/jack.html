@@ -20,12 +20,10 @@
   var jack = babble.babbler('jack').subscribe(pubnub, function () {
     jack.tell('emma', 'tell age', 27);
 
-    jack.ask('emma', 'ask age',
-        babble.run(function (age, context) {
+    jack.ask('emma', 'ask age')
+        .run(function (age, context) {
           write(context.from + ' is ' + age + ' years old');
-        })
-        .done()
-    );
+        });
   });
 
   function write (message) {

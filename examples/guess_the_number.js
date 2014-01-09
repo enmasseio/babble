@@ -53,8 +53,8 @@ options.right = babble.reply(function () {
     })
     .done();
 
-emma.listen('lets play guess the number',
-    babble.decide(function () {
+emma.listen('lets play guess the number')
+    .decide(function () {
       return (Math.random() > 0.2) ? 'start': 'deny';
     }, {
       start: babble.reply(startGame)
@@ -62,9 +62,7 @@ emma.listen('lets play guess the number',
           .done(),
       deny: babble.reply(denyGame)
           .done()
-    })
-    .done()
-);
+    });
 
 /* -------------------------------------------------------------------------- */
 
@@ -107,17 +105,15 @@ var checkGuess = babble.decide(function (response) {
 guessChoices.right = babble.run(triumph).done();
 guessChoices.wrong = babble.reply(guessNext).then(checkGuess).done();
 
-jack.ask('emma', 'lets play guess the number',
-    babble.decide(function (response) {
+jack.ask('emma', 'lets play guess the number')
+    .decide(function (response) {
       return (response == 'ok') ? 'ok': 'notOk';
       }, {
       ok: babble.reply(initialize)
           .then(checkGuess)
           .done(),
       notOk: babble.run(whine).done()
-    })
-    .done()
-);
+    });
 
 
 function randomInt(min, max) {

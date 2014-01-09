@@ -1,12 +1,10 @@
 !function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.babble=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = require('./lib/babble');
 
-},{"./lib/babble":4}],2:[function(require,module,exports){
+},{"./lib/babble":3}],2:[function(require,module,exports){
 var uuid = require('node-uuid'),
 
     pubsubInterfaces = require('./pubsub'),
-
-    FlowBuilder = require('./FlowBuilder'),
 
     Block = require('./block/Block'),
     Action = require('./block/Action'),
@@ -136,20 +134,20 @@ Babbler.prototype.publish = function publish (id, message) {
 /**
  * Listen for a specific event
  * @param {String} message
- * @param {Block} start     Start block of a control flow.
+ * @return {Block} start     Start block of a control flow.
  */
-Babbler.prototype.listen = function listen (message, start) {
+Babbler.prototype.listen = function listen (message) {
   if (typeof message !== 'string') {
     throw new TypeError('Parameter message must be a string');
   }
 
-  if (!start instanceof Block) {
-    throw new TypeError('Parameter start must be a Block');
-  }
-
   // TODO: add support for a string as callback
 
+  var start = new Start();
+
   this.listeners[message] = start;
+
+  return start;
 };
 
 /**
@@ -172,19 +170,12 @@ Babbler.prototype.tell = function tell (id, message, data) {
  * @param {String} id             Babbler id
  * @param {String} message
  * @param {JSON} [data]           Data must be serializable
- * @param {Block} start           Start block for the control flow
+ * @return {Start} start          Start block for the control flow
  */
-Babbler.prototype.ask = function ask (id, message, data, start) {
+Babbler.prototype.ask = function ask (id, message, data) {
   var cid = uuid.v4(); // create an id for this conversation
 
-  if (data instanceof Block) {
-    start = data;
-    data = undefined;
-  }
-
-  if (!start instanceof Block) {
-    throw new TypeError('Parameter start must be a Block');
-  }
+  var start = new Start();
 
   // create a new conversation
   this.conversations[cid] = {
@@ -203,6 +194,8 @@ Babbler.prototype.ask = function ask (id, message, data, start) {
     message: message,
     data: data
   });
+
+  return start;
 };
 
 /**
@@ -248,167 +241,8 @@ Babbler.prototype._run = function _run (conversation, message) {
 
 module.exports = Babbler;
 
-},{"./FlowBuilder":3,"./block/Action":5,"./block/Block":6,"./block/Reply":8,"./block/Start":9,"./pubsub":10,"node-uuid":21}],3:[function(require,module,exports){
-var uuid = require('node-uuid'),
-
-    Block = require('./block/Block'),
-    Action = require('./block/Action'),
-    Reply = require('./block/Reply'),
-    Decision = require('./block/Decision'),
-    Start = require('./block/Start');
-
-/**
- * Build a conversation flow between two peers
- * @constructor
- * @param {Block} block       A control flow block
- */
-function FlowBuilder (block) {
-  if (!(this instanceof FlowBuilder)) {
-    throw new SyntaxError('Constructor must be called with the new operator');
-  }
-
-  if (!(block instanceof Block)) {
-    throw new TypeError('Parameter block must be a Block');
-  }
-
-  this.first = block;
-  this.last = block;
-
-  this.listeners = {
-    done: []
-  };
-}
-
-/**
- * Register an event handler for the FlowBuilder
- * @param {String} event      Available events: 'done'
- * @param {function} callback Callback is invoked when the event takes place.
- *                            Is invoked without parameters.
- */
-FlowBuilder.prototype.on = function on (event, callback) {
-  switch (event) {
-    case 'done':
-      this.listeners.done.push(callback);
-      break;
-
-    default:
-      throw new Error('Unknown event "' + event + '"');
-  }
-};
-
-/**
- * Trigger an event
- * @param {string} event
- * @private
- */
-FlowBuilder.prototype._trigger = function _trigger (event) {
-  var callbacks = this.listeners[event];
-  if (callbacks) {
-    callbacks.forEach(function (callback) {
-      callback();
-    });
-  }
-};
-
-/**
- * Finalize this control flow, returns the first block in the created control
- * flow.
- * @return {Block} first
- */
-FlowBuilder.prototype.done = function done () {
-  // TODO: add an error handling block at the end
-
-  this._trigger('done');
-
-  return this.first;
-};
-
-/**
- * Execute the given callback and send the return value to the other peer.
- * @param {Function} callback   Executed as callback(message: *, context: Object)
- *                              Must return a result
- * @return {FlowBuilder} self
- */
-FlowBuilder.prototype.reply = function reply (callback) {
-  var block = new Reply(callback);
-
-  this.last.chain(block);
-  this.last = block;
-
-  return this;
-};
-
-/**
- * Append a next block to the control flow
- * @param {Block} block        Next block in the control flow
- * @return {FlowBuilder} self
- */
-FlowBuilder.prototype.then = function then (block) {
-  this.last.chain(block);
-  this.last = block;
-
-  return this;
-};
-
-/**
- * Execute the given callback, continue with the conversation with returned id
- *
- * Syntax:
- *
- *     decide(choices)
- *     decide(decision, choices)
- *
- * Where:
- *
- *     {Function | Object} [decision]
- *                              When a `decision` function is provided, the
- *                              function is invoked as decision(response, context),
- *                              where `response` is the last received message,
- *                              and `context` is an object where state can be
- *                              stored during a conversation. The function must
- *                              return the id for the next block in the control
- *                              flow, which must be available in the provided
- *                              `options`. If `decision` is not provided, the
- *                              next block will be mapped directly from the
- *                              response.
- *     {Object.<String, Block>} choices
- *                              A map with the possible next blocks in the flow
- *                              The next block is selected by the id returned
- *                              by the decision function.
- *
- * @param arg1   Can be {function} decision or {Object} choices
- * @param [arg2] {Object} choices
- * @return {FlowBuilder} self
- */
-FlowBuilder.prototype.decide = function decide (arg1, arg2) {
-  // TODO: test arguments.length > 2
-  var block = new Decision(arg1, arg2);
-
-  this.last.chain(block);
-  this.last = block;
-
-  return this;
-};
-
-/**
- * Execute the given callback and continue with the next conversation
- * @param {Function} callback   Executed as callback(message: *, context: Object)
- * @return {FlowBuilder} self
- */
-FlowBuilder.prototype.run = function run (callback) {
-  var block = new Action(callback);
-
-  this.last.chain(block);
-  this.last = block;
-
-  return this;
-};
-
-module.exports = FlowBuilder;
-
-},{"./block/Action":5,"./block/Block":6,"./block/Decision":7,"./block/Reply":8,"./block/Start":9,"node-uuid":21}],4:[function(require,module,exports){
+},{"./block/Action":4,"./block/Block":5,"./block/Reply":7,"./block/Start":8,"./pubsub":9,"node-uuid":20}],3:[function(require,module,exports){
 var Babbler = require('./Babbler'),
-    FlowBuilder = require('./FlowBuilder'),
 
     Reply = require('./block/Reply'),
     Action = require('./block/Action'),
@@ -429,10 +263,10 @@ exports.babbler = function babbler(id) {
  *                                where response is the incoming message.
  *                                The return value of fn is send back to the
  *                                sender
- * @return {FlowBuilder} builder  A flow builder
+ * @return {Reply} reply
  */
 exports.reply = function reply(callback) {
-  return new FlowBuilder(new Reply(callback));
+  return new Reply(callback);
 };
 
 /**
@@ -463,35 +297,25 @@ exports.reply = function reply(callback) {
  *
  * @param arg1   Can be {function} decision or {Object} choices
  * @param [arg2] {Object} choices
- * @return {FlowBuilder} builder  A flow builder
+ * @return {Decision} decision
  */
 exports.decide = function decide(arg1, arg2) {
   // TODO: test arguments.length > 2
-  return new FlowBuilder(new Decision(arg1, arg2));
+  return new Decision(arg1, arg2);
 };
 
 /**
  * Create a control flow starting with an action block
  * @param {Function} callback     Invoked as fn(response),
  *                                where response is the latest message received.
- * @return {FlowBuilder} builder  A flow builder
+ * @return {Action} action
  */
 exports.run = function run (callback) {
-  return new FlowBuilder(new Action(callback));
-};
-
-/**
- * Create a control flow starting with given block
- * @param {Block} block        First block in the control flow
- * @return {FlowBuilder} builder
- */
-exports.then = function then (block) {
-  return new FlowBuilder(block);
+  return new Action(callback);
 };
 
 // export the babbler prototype
 exports.Babbler = Babbler;
-exports.FlowBuilder = FlowBuilder;
 
 // export all flow blocks
 exports.block = {
@@ -505,7 +329,7 @@ exports.block = {
 // export pubsub interfaces
 exports.pubsub = require('./pubsub');
 
-},{"./Babbler":2,"./FlowBuilder":3,"./block/Action":5,"./block/Block":6,"./block/Decision":7,"./block/Reply":8,"./block/Start":9,"./pubsub":10}],5:[function(require,module,exports){
+},{"./Babbler":2,"./block/Action":4,"./block/Block":5,"./block/Decision":6,"./block/Reply":7,"./block/Start":8,"./pubsub":9}],4:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -552,14 +376,30 @@ Action.prototype.execute = function execute (context, arg) {
   };
 };
 
+/**
+ * Create an action block and chain it to the current block.
+ * @param {Function} callback   Executed as callback(message: *, context: Object)
+ * @return {Action} block
+ */
+Block.prototype.run = function run (callback) {
+  var action = new Action(callback);
+
+  this.then(action);
+
+  return action;
+};
+
 module.exports = Action;
 
-},{"./Block":6}],6:[function(require,module,exports){
+},{"./Block":5}],5:[function(require,module,exports){
 /**
  * Abstract control flow diagram block
  * @constructor
  */
-function Block() {}
+function Block() {
+  this.next = null;
+  this.previous = null;
+}
 
 /**
  * Execute the block
@@ -572,19 +412,35 @@ Block.prototype.execute = function execute (context, arg) {
 };
 
 /**
- * Specify the next block in the chain
+ * Chain a block to the current block
  * @param {Block} next
+ * @return {Block} next
  */
-Block.prototype.chain = function chain(next) {
+Block.prototype.then = function then (next) {
   if (!(next instanceof Block)) {
     throw new TypeError('Parameter next must be a Block');
   }
 
+  next.previous = this;
   this.next = next;
+
+  return next;
+};
+
+/**
+ * Get the first block in this control flow
+ * @return {Block} first
+ */
+Block.prototype.done = function done() {
+  var block = this;
+  while (block.previous) {
+    block = block.previous;
+  }
+  return block;
 };
 
 module.exports = Block;
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -686,9 +542,48 @@ Decision.prototype.execute = function execute (context, arg) {
   };
 };
 
+/**
+ * Create a decision block and chain it to the current block.
+ *
+ * Syntax:
+ *
+ *     decide(choices)
+ *     decide(decision, choices)
+ *
+ * Where:
+ *
+ *     {Function | Object} [decision]
+ *                              When a `decision` function is provided, the
+ *                              function is invoked as decision(response, context),
+ *                              where `response` is the last received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. The function must
+ *                              return the id for the next block in the control
+ *                              flow, which must be available in the provided
+ *                              `options`. If `decision` is not provided, the
+ *                              next block will be mapped directly from the
+ *                              response.
+ *     {Object.<String, Block>} choices
+ *                              A map with the possible next blocks in the flow
+ *                              The next block is selected by the id returned
+ *                              by the decision function.
+ *
+ * @param arg1   Can be {function} decision or {Object} choices
+ * @param [arg2] {Object} choices
+ * @return {Decision} decision
+ */
+Block.prototype.decide = function decide (arg1, arg2) {
+  // TODO: test arguments.length > 2
+  var decision = new Decision(arg1, arg2);
+
+  this.then(decision);
+
+  return decision;
+};
+
 module.exports = Decision;
 
-},{"./Block":6}],8:[function(require,module,exports){
+},{"./Block":5}],7:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -736,9 +631,23 @@ Reply.prototype.execute = function execute (context, arg) {
   };
 };
 
+/**
+ * Create a Reply block and chain it to the current block
+ * @param {Function} callback   Executed as callback(message: *, context: Object)
+ *                              Must return a result
+ * @return {Reply} reply
+ */
+Block.prototype.reply = function reply (callback) {
+  var block = new Reply(callback);
+
+  this.then(block);
+
+  return block;
+};
+
 module.exports = Reply;
 
-},{"./Block":6}],9:[function(require,module,exports){
+},{"./Block":5}],8:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -769,7 +678,7 @@ Start.prototype.execute = function execute (context, arg) {
 
 module.exports = Start;
 
-},{"./Block":6}],10:[function(require,module,exports){
+},{"./Block":5}],9:[function(require,module,exports){
 // built-in pubsub interfaces
 
 /**
@@ -844,7 +753,7 @@ exports['pubnub'] = function (params) {
 // default interface
 exports['default'] = exports['pubsub-js'];
 
-},{"pubnub":"NaMlu/","pubsub-js":22}],11:[function(require,module,exports){
+},{"pubnub":"NaMlu/","pubsub-js":21}],10:[function(require,module,exports){
 var Buffer = require('buffer').Buffer;
 var intSize = 4;
 var zeroBuffer = new Buffer(intSize); zeroBuffer.fill(0);
@@ -881,7 +790,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 
 module.exports = { hash: hash };
 
-},{"buffer":18}],12:[function(require,module,exports){
+},{"buffer":17}],11:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 var sha = require('./sha')
 var sha256 = require('./sha256')
@@ -980,7 +889,7 @@ each(['createCredentials'
   }
 })
 
-},{"./md5":13,"./rng":14,"./sha":15,"./sha256":16,"buffer":18}],13:[function(require,module,exports){
+},{"./md5":12,"./rng":13,"./sha":14,"./sha256":15,"buffer":17}],12:[function(require,module,exports){
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
  * Digest Algorithm, as defined in RFC 1321.
@@ -1145,7 +1054,7 @@ module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
 
-},{"./helpers":11}],14:[function(require,module,exports){
+},{"./helpers":10}],13:[function(require,module,exports){
 // Original code adapted from Robert Kieffer.
 // details at https://github.com/broofa/node-uuid
 (function() {
@@ -1178,7 +1087,7 @@ module.exports = function md5(buf) {
 
 }())
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
  * in FIPS PUB 180-1
@@ -1281,7 +1190,7 @@ module.exports = function sha1(buf) {
   return helpers.hash(buf, core_sha1, 20, true);
 };
 
-},{"./helpers":11}],16:[function(require,module,exports){
+},{"./helpers":10}],15:[function(require,module,exports){
 
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -1362,7 +1271,7 @@ module.exports = function sha256(buf) {
   return helpers.hash(buf, core_sha256, 32, true);
 };
 
-},{"./helpers":11}],17:[function(require,module,exports){
+},{"./helpers":10}],16:[function(require,module,exports){
 require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"PcZj9L":[function(require,module,exports){
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
@@ -2720,7 +2629,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
 },{}]},{},[])
 ;;module.exports=require("native-buffer-browserify").Buffer
 
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
 
@@ -3715,7 +3624,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":19,"ieee754":20}],19:[function(require,module,exports){
+},{"base64-js":18,"ieee754":19}],18:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -3842,7 +3751,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 }());
 
 
-},{}],20:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -3928,7 +3837,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var Buffer=require("__browserify_Buffer");//     uuid.js
 //
 //     Copyright (c) 2010-2012 Robert Kieffer
@@ -4175,7 +4084,7 @@ var Buffer=require("__browserify_Buffer");//     uuid.js
   }
 }).call(this);
 
-},{"__browserify_Buffer":17,"crypto":12}],22:[function(require,module,exports){
+},{"__browserify_Buffer":16,"crypto":11}],21:[function(require,module,exports){
 /*
 Copyright (c) 2010,2011,2012,2013 Morgan Roderick http://roderick.dk
 License: MIT - http://mrgnrdrck.mit-license.org

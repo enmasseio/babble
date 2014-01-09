@@ -1,7 +1,6 @@
 var assert = require('assert'),
     babble = require('../index'),
     Babbler = require('../lib/Babbler'),
-    FlowBuilder = require('../lib/FlowBuilder'),
 
     Reply = require('../lib/block/Reply'),
     Decision = require('../lib/block/Decision'),
@@ -19,21 +18,18 @@ describe('babbler', function() {
   });
 
   it('should create a flow starting with a reply block', function() {
-    var builder = babble.reply(function () {});
-    assert.ok(builder instanceof FlowBuilder);
-    assert.ok(builder.done() instanceof Reply);
+    var block = babble.reply(function () {});
+    assert.ok(block instanceof Reply);
   });
 
   it('should create a flow starting with a decision block', function() {
-    var builder = babble.decide(function () {}, {});
-    assert.ok(builder instanceof FlowBuilder);
-    assert.ok(builder.done() instanceof Decision);
+    var block = babble.decide(function () {}, {});
+    assert.ok(block instanceof Decision);
   });
 
   it('should create a flow starting with an action block', function() {
-    var builder = babble.run(function () {});
-    assert.ok(builder instanceof FlowBuilder);
-    assert.ok(builder.done() instanceof Action);
+    var block = babble.run(function () {});
+    assert.ok(block instanceof Action);
   });
 
   // TODO: test reply, decide, run

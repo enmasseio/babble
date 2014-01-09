@@ -61,7 +61,7 @@ describe('Action', function() {
   it('should execute an action with next block', function () {
     var action = new Action(function () {});
     var nextAction = new Action (function () {});
-    action.chain(nextAction);
+    action.then(nextAction);
 
     var next = action.execute();
     assert.strictEqual(next.result, undefined);
