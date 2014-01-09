@@ -201,16 +201,21 @@ Babble has the following factory functions:
 
 - `babble.babbler(id: String) : Babbler`
   Factory function to create a new Babbler.
-- `babble.run(callback: Function [, next: Block]) : Action`
-  Factory function to create an Action block. The provided callback function
+- `babble.run(callback: Function) : FlowBuilder`
+  Create a flow starting with an Action block. The provided callback function
   is called as `callback(response, context)` and should not return a result.
-- `babble.decide(callback: Function) : Decision`
-  Factory function to create a Decision block. The callback function is called
+- `babble.decide(callback: Function) : FlowBuilder`
+  Create a flow starting with a Decision block. The callback function is called
   as `callback(response, context) : Block`, and must return an instance of
   `Block` (an Action, Reply, or Decision). The returned block is used as next
   block in the control flow.
-- `babble.reply(callback: Function [, next: Block]) : Reply`
-  Factory function to create a Reply block. The provided callback function
+- `babble.reply(callback: Function) : FlowBuilder`
+  Create a flow starting with a Reply block. The provided callback function
+  is called as `callback(response, context)`, where `response` is the latest
+  received message, and must return a result. The returned result is send to the
+  connected peer.
+- `babble.then(start: Block]) : FlowBuilder`
+  Create a flow starting with given block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is send to the
   connected peer.
@@ -219,11 +224,12 @@ Babble contains the following prototypes. These prototypes are normally
 instantiated via the above mentioned factory functions.
 
 - `babble.Babbler`
+- `babble.FlowBuilder`
 - `babble.block.Block`
 - `babble.block.Action`
 - `babble.block.Decision`
 - `babble.block.Reply`
-- `babble.block.Trigger`
+- `babble.block.Start`
 
 ### Babbler
 
@@ -249,16 +255,36 @@ A babbler has the following functions:
 - `publish(id: String, message: *)`
   Send a message to another peer.
 
-- `listen(message: String, next: Block)`
+- `listen(message: String, start: Block)`
   Listen for incoming messages. If there is a match, the provided
-  control flow block `next` will be executed.
+  control flow block `start` will be executed.
 
 - `tell(id: String, message: String [, data: JSON])`
   Send a notification to another peer.
 
-- `ask(id: String, message: String [,data: JSON], next: Block)`
+- `ask(id: String, message: String [,data: JSON], start: Block)`
   Send a question to another peer. When the reply comes in,
-  the provided control flow block `next` is executed.
+  the provided control flow block `start` is executed.
+
+### FlowBuilder
+
+The FlowBuilder is a utility to build flows using a chained API.
+A FlowBuilder is created via the factory functions available in `babble`
+(`reply`, `decide`, `run`, `then`). A control flow is finalized after calling
+`done`, which returns the first block in the created flow.
+
+The FlowBuilder has the following functions:
+
+- `done() : Block`
+  Finalize the control flow, returns the start block of the flow.
+- `reply(callback: Function) : FlowBuilder`
+  Append a Reply block to the control flow.
+- `then(block : Block) : FlowBuilder`
+  Append an arbitrary block to the control flow.
+- `decide([decision: function, ] choices: Object<String, Block>) : FlowBuilder`
+  Append a decision block to the control flow.
+- `run(callback: Function) : FlowBuilder`
+  Append an Action block to the control flow.
 
 
 ## Build
