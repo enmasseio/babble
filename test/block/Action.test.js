@@ -68,12 +68,15 @@ describe('Action', function() {
     assert.strictEqual(next.block, nextAction);
   });
 
-  it('should throw an error when callback returns a result', function () {
+  it('should pass the result from and to callback when executing', function () {
     var action = new Action(function (response, context) {
-      return 'oops';
+      assert.equal(response, 'in');
+      return 'out';
     });
 
-    assert.throws(function () {action.execute();});
+    var next = action.execute('in');
+    assert.strictEqual(next.result, 'out');
+    assert.strictEqual(next.block, undefined);
   });
 
 });

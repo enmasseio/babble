@@ -23,4 +23,15 @@ describe('Listen', function() {
     assert.strictEqual(next.block, block);
   });
 
+  it('should pass the result from and to callback when executing', function () {
+    var action = new Start(function (response, context) {
+      assert.equal(response, 'in');
+      return 'out';
+    });
+
+    var next = action.execute('in');
+    assert.strictEqual(next.result, 'in');
+    assert.strictEqual(next.block, undefined);
+  });
+
 });

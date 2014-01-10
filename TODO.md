@@ -1,7 +1,6 @@
 # TO DO
 
 - Introduce flow blocks Listen and Send?
-- Neatly chain the outputs of the control flow blocks.
 - Implement error handling
 - Implement support for promises to allow async callback functions
 - Store message history in context.

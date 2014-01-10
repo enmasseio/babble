@@ -71,12 +71,15 @@ describe('Reply', function() {
     assert.strictEqual(next.block, nextReply);
   });
 
-  it('should throw an error when callback does not return a result', function () {
-    var reply = new Reply(function (response, context) {
-      return undefined;
+  it('should pass the result from and to callback when executing', function () {
+    var action = new Reply(function (response, context) {
+      assert.equal(response, 'in');
+      return 'out';
     });
 
-    assert.throws(function () {reply.execute();});
+    var next = action.execute('in');
+    assert.strictEqual(next.result, 'out');
+    assert.strictEqual(next.block, undefined);
   });
 
 });

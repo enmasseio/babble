@@ -85,7 +85,7 @@ describe('Decision', function() {
     var context = {};
     var next = decision.execute('yes', context);
     assert.deepEqual(next, {
-      result: undefined,
+      result: 'yes',
       block: yes
     })
   });
@@ -94,7 +94,7 @@ describe('Decision', function() {
     var yes = new Block();
     var no = new Block();
     var decision = new Decision(function (response, context) {
-      assert.strictEqual(response, undefined);
+      assert.strictEqual(response, 'message');
       assert.strictEqual(context, undefined);
       return 'yes';
     }, {
@@ -102,9 +102,9 @@ describe('Decision', function() {
       no: no
     });
 
-    var next = decision.execute();
+    var next = decision.execute('message');
     assert.deepEqual(next, {
-      result: undefined,
+      result: 'message',
       block: yes
     })
   });
@@ -113,16 +113,16 @@ describe('Decision', function() {
     var yes = new Block();
     var context = {a: 2};
     var decision = new Decision(function (response, context) {
-      assert.strictEqual(response, undefined);
+      assert.strictEqual(response, 'message');
       assert.deepEqual(context, {a: 2});
       return 'yes';
     }, {
       yes: yes
     });
 
-    var next = decision.execute(undefined, context);
+    var next = decision.execute('message', context);
     assert.deepEqual(next, {
-      result: undefined,
+      result: 'message',
       block: yes
     })
   });
@@ -140,7 +140,7 @@ describe('Decision', function() {
 
     var next = decision.execute('hello world', context);
     assert.deepEqual(next, {
-      result: undefined,
+      result: 'hello world',
       block: yes
     })
   });
