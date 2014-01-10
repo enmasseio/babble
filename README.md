@@ -84,7 +84,7 @@ her to reply, and then output the received age.
 
 This scenario can be represented by the following control flow diagram:
 
-![ask age](https://raw.github.com/josdejong/babble/master/img/ask_age.jpg)
+![ask age](https://raw.github.com/josdejong/babble/master/img/ask_age.png)
 
 The scenario is programmed as:
 
@@ -120,7 +120,7 @@ propose to meet, and await emma's response.
 
 This scenario can be represented by the following control flow diagram:
 
-![plan a meeting](https://raw.github.com/josdejong/babble/master/img/plan_a_meeting.jpg)
+![plan a meeting](https://raw.github.com/josdejong/babble/master/img/plan_a_meeting.png)
 
 The scenario can be coded as follows. Note that the implementations of the
 control flow blocks are separated from the flow itself.
