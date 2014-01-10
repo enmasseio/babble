@@ -261,37 +261,40 @@ A babbler has the following functions:
 - `publish(id: String, message: *)`
   Send a message to another peer.
 
-- `listen(message: String) : Block`
+- `listen(message: String [, callback: Function]) : Block`
   Listen for incoming messages. If there is a match, the returned control flow
   block will be executed. Other blocks can be chained to the returned block.
 
 - `tell(id: String, message: String [, data: JSON])`
   Send a notification to another peer.
 
-- `ask(id: String, message: String [,data: JSON]) : Block`
+- `ask(id: String, message: String [,data: JSON] [, callback: Function]) : Block`
   Send a question to another peer. Returns a `start` Block which is executed
   When the reply comes in. Other blocks can be chained to the returned block.
 
 ### Block
 
 Blocks can be created via the factory functions available in `babble`
-(`reply`, `decide`, `run`, `then`), or in a Babbler (`listen`, `ask`).
+(`reply`, `decide`, `run`, `then`, `listen`), or in a Babbler (`listen`, `ask`).
 Blocks can be chained together, resulting in a control flow. The results
 returned by blocks are used as input argument for the next block in the chain.
 
 A Block has the following functions:
 
-- `reply(callback: Function) : Block`
-  Append a Reply block to the control flow. Returns the first block in the
-  chain.
-- `then(block : Block) : Block`
-  Append an arbitrary block to the control flow. Returns the first block in the
-  chain.
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`
   Append a decision block to the control flow. Returns the first block in the
   chain.
+- `reply(callback: Function) : Block`
+  Append a Reply block to the control flow. Returns the first block in the
+  chain.
+- `listen([callback: Function]) : Block`
+  Append a Listen block to the control flow. Returns the first block in the
+  chain.
 - `run(callback: Function) : Block`
   Append an Action block to the control flow. Returns the first block in the
+  chain.
+- `then(block : Block) : Block`
+  Append an arbitrary block to the control flow. Returns the first block in the
   chain.
 
 

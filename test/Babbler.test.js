@@ -25,18 +25,18 @@ describe('Babbler', function() {
     jack = null;
   });
 
-  it('should create and destroy a babbler', function() {
+  it.skip('should create and destroy a babbler', function() {
     var susan = new Babbler('susan').subscribe();
     assert.ok(susan instanceof Babbler);
     susan.unsubscribe();
   });
 
-  it('should throw an error when creating a babbler with wrong syntax', function() {
+  it.skip('should throw an error when creating a babbler with wrong syntax', function() {
     assert.throws (function () {new Babbler(); });
     assert.throws (function () {Babbler('whoops'); });
   });
 
-  describe ('listen', function () {
+  describe.skip ('listen', function () {
 
     it ('should listen to a message', function () {
       emma.listen('test', new Block());
@@ -51,7 +51,7 @@ describe('Babbler', function() {
 
   });
 
-  describe ('tell', function () {
+  describe.skip ('tell', function () {
     
     it('should tell a message', function(done) {
       emma.listen('test')
@@ -83,8 +83,7 @@ describe('Babbler', function() {
             return data.a + data.b;
           });
 
-      jack.ask('emma', 'add', {a:2, b:3})
-          .listen(function (result) {
+      jack.ask('emma', 'add', {a:2, b:3}, function (result) {
             assert.equal(result, 5);
             done();
           });
@@ -101,10 +100,42 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'count', 0)
-          .listen()
           .reply(function (count) {
             return count + 2;
           });
+    });
+
+    it ('should invoke the callback provided with listen', function(done) {
+      emma.listen('age', function (response) {
+        assert.equal(response, 32);
+        done();
+      });
+
+      jack.tell('emma', 'age', 32);
+    });
+
+    it ('should invoke the callback provided with ask', function(done) {
+      emma.listen('age')
+          .reply(function () {
+            return 32;
+          });
+
+      jack.ask('emma', 'age', function (response) {
+        assert.equal(response, 32);
+        done();
+      });
+    });
+
+    it ('should invoke the callback provided with an ask with data', function(done) {
+      emma.listen('double')
+          .reply(function (value) {
+            return value * 2;
+          });
+
+      jack.ask('emma', 'double', 2, function (response) {
+        assert.equal(response, 4);
+        done();
+      });
     });
 
     it('should make a decision during a conversation', function(done) {
@@ -115,7 +146,6 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'are you available?')
-          .listen()
           .decide(function (response) {
             assert.equal(response, 'yes');
             return response;
@@ -140,8 +170,7 @@ describe('Babbler', function() {
             return 'yes';
           });
 
-      jack.ask('emma', 'are you available?')
-          .listen(function (response) {
+      jack.ask('emma', 'are you available?', function (response) {
             assert.equal(response, 'yes');
             logs.push('log 3');
           })
@@ -158,12 +187,13 @@ describe('Babbler', function() {
       emma.listen('question')
           .run(function (response, context) {
             context.a = 1;
+            return response;
           })
           .decide(function (response, context) {
             context.b = 2;
             assert.equal(context.a, 1);
 
-            return 'first'
+            return 'first';
           }, {
             first: new Reply(function (response, context) {
                   assert.equal(response, 'a');
@@ -173,7 +203,7 @@ describe('Babbler', function() {
 
                   return 'b';
                 })
-                .run(function (response, context) {
+                .listen(function (response, context) {
                   assert.equal(response, 'c');
                   assert.equal(context.a, 1);
                   assert.equal(context.b, 2);
@@ -185,6 +215,7 @@ describe('Babbler', function() {
       jack.ask('emma', 'question', 'a')
           .run(function (response, context) {
             context.a = 1;
+            return response;
           })
           .reply(function (response, context) {
             assert.equal(response, 'b');

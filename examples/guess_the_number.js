@@ -52,13 +52,13 @@ var MIN = 0,
   }
 
   var check = babble.decide(decideIfCorrect);
-  check.addChoice('higher', babble.reply(higher).then(check));
-  check.addChoice('lower',  babble.reply(lower).then(check));
+  check.addChoice('higher', babble.reply(higher).listen().then(check));
+  check.addChoice('lower',  babble.reply(lower).listen().then(check));
   check.addChoice('right',  babble.reply(right));
 
   emma.listen('lets play guess the number')
       .decide(decideToPlay, {
-        start: babble.reply(start).then(check),
+        start: babble.reply(start).listen().then(check),
         deny:  babble.reply(deny)
       });
 
@@ -105,11 +105,11 @@ var MIN = 0,
 
   var checkGuess = babble.decide(decideIfCorrect);
   checkGuess.addChoice('right', babble.run(triumph));
-  checkGuess.addChoice('wrong', babble.reply(guess).then(checkGuess));
+  checkGuess.addChoice('wrong', babble.reply(guess).listen().then(checkGuess));
 
   jack.ask('emma', 'lets play guess the number')
       .decide(decideToStart, {
-        start:  babble.run(start).reply(guess).then(checkGuess),
+        start:  babble.run(start).reply(guess).listen().then(checkGuess),
         cancel: babble.run(whine)
       });
 
