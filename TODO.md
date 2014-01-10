@@ -7,5 +7,4 @@
 - What to do with initial message and data, whilst subsequent calls only have
   message? -> rename this stuff? an initial `event` with optional `message`,
   and only subsequal `message`.
-- Change to JSON-RPC under the hood?
 - implement conversations with multiple peers at the same time.

@@ -276,7 +276,8 @@ A babbler has the following functions:
 
 Blocks can be created via the factory functions available in `babble`
 (`reply`, `decide`, `run`, `then`), or in a Babbler (`listen`, `ask`).
-Blocks can be chained together, resulting in a control flow.
+Blocks can be chained together, resulting in a control flow. The results
+returned by blocks are used as input argument for the next block in the chain.
 
 A Block has the following functions:
 
