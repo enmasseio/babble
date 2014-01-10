@@ -5,108 +5,115 @@ var MIN = 0,
 
 /* -------------------------------------------------------------------------- */
 
-var emma = babble.babbler('emma').subscribe();
+(function () {
+  var emma = babble.babbler('emma').subscribe();
 
-var startGame = function (response, context) {
-  // choose a random value
-  context.number = randomInt(MIN, MAX);
+  function decideToPlay () {
+    return (Math.random() > 0.2) ? 'start': 'deny';
+  }
 
-  console.log('emma: ok I have a number in mind between ' + MIN + ' and ' + MAX);
-  return 'ok';
-};
+  function decideIfCorrect (guess, context) {
+    if (guess < context.number) {
+      return 'higher';
+    }
+    else if (guess > context.number) {
+      return 'lower';
+    }
+    else  {
+      return 'right';
+    }
+  }
 
-var denyGame = function () {
-  return 'no thanks';
-};
+  var start = function (response, context) {
+    // choose a random value
+    context.number = randomInt(MIN, MAX);
 
-function check (guess, context) {
-  if (guess < context.number) {
+    console.log('emma: ok I have a number in mind between ' + MIN + ' and ' + MAX);
+    return 'ok';
+  };
+
+  var deny = function () {
+    return 'no thanks';
+  };
+
+  function higher () {
+    console.log('emma: higher');
     return 'higher';
   }
-  else if (guess > context.number) {
+
+  function lower () {
+    console.log('emma: lower');
     return 'lower';
   }
-  else  {
+
+  function right () {
+    console.log('emma: right!');
     return 'right';
   }
-}
 
-var options = {};
-var validateGuess = babble.decide(check, options);
-options.higher = babble.reply(function () {
-      console.log('emma: higher');
-      return 'higher';
-    })
-    .then(validateGuess);
+  var check = babble.decide(decideIfCorrect);
+  check.addChoice('higher', babble.reply(higher).then(check));
+  check.addChoice('lower',  babble.reply(lower).then(check));
+  check.addChoice('right',  babble.reply(right));
 
-options.lower = babble.reply(function () {
-      console.log('emma: lower');
-      return 'lower';
-    })
-    .then(validateGuess);
+  emma.listen('lets play guess the number')
+      .decide(decideToPlay, {
+        start: babble.reply(start).then(check),
+        deny:  babble.reply(deny)
+      });
 
-options.right = babble.reply(function () {
-      console.log('emma: right!');
-      return 'right';
-    });
-
-emma.listen('lets play guess the number')
-    .decide(function () {
-      return (Math.random() > 0.2) ? 'start': 'deny';
-    }, {
-      start: babble.reply(startGame).then(validateGuess),
-      deny: babble.reply(denyGame)
-    });
+})();
 
 /* -------------------------------------------------------------------------- */
 
-var jack = babble.babbler('jack').subscribe();
+(function () {
+  var jack = babble.babbler('jack').subscribe();
 
-var initialize = function (response, context) {
-  context.lower = MIN;
-  context.upper = MAX;
-
-  context.number = randomInt(context.lower, context.upper);
-  console.log('jack: guessing ' + context.number + '...');
-  return context.number;
-};
-
-var whine = function () {
-  console.log('emma doesn\'t want to play guess the number :(');
-};
-
-var triumph = function (response, context) {
-  console.log('jack: I found it! The correct number is: ' + context.number);
-};
-
-var guessNext = function (response, context) {
-  if (response == 'higher') {
-    context.lower = context.number + 1;
-  }
-  else if (response == 'lower') {
-    context.upper = context.number - 1;
+  function decideToStart (response) {
+    return (response == 'ok') ? 'start': 'cancel';
   }
 
-  context.number = randomInt(context.lower, context.upper);
-  console.log('jack: guessing ' + context.number + '...');
-  return context.number;
-};
+  function decideIfCorrect (response) {
+    return (response == 'right') ? 'right': 'wrong';
+  }
 
-var guessChoices = {};
-var checkGuess = babble.decide(function (response) {
-  return (response == 'right') ? 'right': 'wrong';
-}, guessChoices);
-guessChoices.right = babble.run(triumph);
-guessChoices.wrong = babble.reply(guessNext).then(checkGuess);
+  function start(response, context) {
+    context.lower = MIN;
+    context.upper = MAX;
+  }
 
-jack.ask('emma', 'lets play guess the number')
-    .decide(function (response) {
-      return (response == 'ok') ? 'ok': 'notOk';
-      }, {
-      ok: babble.reply(initialize).then(checkGuess),
-      notOk: babble.run(whine)
-    });
+  function whine() {
+    console.log('emma doesn\'t want to play guess the number :(');
+  }
 
+  function triumph (response, context) {
+    console.log('jack: I found it! The correct number is: ' + context.number);
+  }
+
+  function guess (response, context) {
+    if (response == 'higher') {
+      context.lower = context.number + 1;
+    }
+    else if (response == 'lower') {
+      context.upper = context.number - 1;
+    }
+
+    context.number = randomInt(context.lower, context.upper);
+    console.log('jack: guessing ' + context.number + '...');
+    return context.number;
+  }
+
+  var checkGuess = babble.decide(decideIfCorrect);
+  checkGuess.addChoice('right', babble.run(triumph));
+  checkGuess.addChoice('wrong', babble.reply(guess).then(checkGuess));
+
+  jack.ask('emma', 'lets play guess the number')
+      .decide(decideToStart, {
+        start:  babble.run(start).reply(guess).then(checkGuess),
+        cancel: babble.run(whine)
+      });
+
+})();
 
 function randomInt(min, max) {
   return Math.floor(min + Math.random() * (max - min));

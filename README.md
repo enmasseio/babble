@@ -62,7 +62,7 @@ emma.listen('ask age')
     }));
 
 jack.ask('emma', 'ask age')
-.run(function (age, context) {
+    .run(function (age, context) {
       console.log(context.from + ' is ' + age + ' years old');
     }));
 ```
@@ -122,7 +122,8 @@ This scenario can be represented by the following control flow diagram:
 
 ![plan a meeting](https://raw.github.com/josdejong/babble/master/img/plan_a_meeting.jpg)
 
-The scenario is coded as:
+The scenario can be coded as follows. Note that the implementations of the
+control flow blocks are separated from the flow itself.
 
 ```js
 var babble = require('babble');
@@ -130,51 +131,69 @@ var babble = require('babble');
 var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
+function decideIfAvailable () {
+  return (Math.random() > 0.4) ? 'yes' : 'no';
+}
+
+function decideToAgree (response) {
+  if (response == 'can we meet at 15:00?' && Math.random() > 0.5) {
+    return 'ok';
+  }
+  else {
+    return 'no';
+  }
+}
+
+function yes() {
+  return 'yes';
+}
+
+function ok () {
+  return 'ok';
+}
+
+function no () {
+  return 'no';
+}
+
 emma.listen('do you have time today?')
-    .decide(function (response) {
-      return (Math.random() > 0.4) ? 'yes' : 'no';
-    }, {
-      yes: babble.reply(function () {
-            return 'yes';
-          })
-          .decide(function (response) {
-            if (response == 'can we meet at 15:00?' && Math.random() > 0.5) {
-              return 'ok';
-            }
-            else {
-              return 'no';
-            }
-          }, {
-            ok: babble.reply(function () {
-                  return 'ok';
-                }),
-            no: babble.reply(function () {
-                  return 'no';
-                })
+    .decide(decideIfAvailable, {
+      yes: babble.reply(yes)
+          .decide(decideToAgree, {
+            ok: babble.reply(ok),
+            no: babble.reply(no)
           }),
-      no: babble.reply(function () {
-            return 'no';
-          })
+      no: babble.reply(no)
     });
+
+function askToMeet () {
+  return 'can we meet at 15:00?';
+}
+
+function noTime () {
+  console.log('emma has no time');
+}
+
+function agreesToMeet (response) {
+  return (response == 'ok') ? 'ok': 'notOk';
+}
+
+function agreement () {
+  console.log('emma agreed');
+}
+
+function noAgreement () {
+  console.log('emma didn\'t agree');
+}
 
 jack.ask('emma', 'do you have time today?')
     .decide({
-      yes: babble.reply(function () {
-            return 'can we meet at 15:00?';
-          })
-          .decide(function (response) {
-            return (response == 'ok') ? 'ok': 'notOk';
-          }, {
-            ok: babble.run(function () {
-                  console.log('emma agreed');
-                }),
-            notOk: babble.run(function () {
-                  console.log('emma didn\'t agree');
-                })
+      yes: babble.reply(askToMeet)
+          .decide(agreesToMeet, {
+            ok: babble.run(agreement),
+            notOk: babble.run(noAgreement)
           }),
-      no: babble.run(function () {
-            console.log('emma has no time');
-          })
+      no: babble.run(noTime)
     });
 ```
 
@@ -188,17 +207,21 @@ Babble has the following factory functions:
 - `babble.run(callback: Function) : Block`
   Create a flow starting with an Action block. The provided callback function
   is called as `callback(response, context)` and should not return a result.
-- `babble.decide(callback: Function) : Block`
-  Create a flow starting with a Decision block. The callback function is called
-  as `callback(response, context) : Block`, and must return an instance of
-  `Block` (an Action, Reply, or Decision). The returned block is used as next
-  block in the control flow.
+- `babble.decide([decision: Function, ] choices: Object<String, Block>) : Block`
+  Create a flow starting with a Decision block.
+  When a `decision` function is provided, the function is invoked as
+  `decision(response, context)`. The function must return the id for the next
+  block in the control flow, which must be available in the provided `options`.
+  If `decision` is not provided, the next block will be mapped directly from the
+  `response`. Parameter `choices` is a map with the possible next blocks in the
+  flow. The next block is selected by the id returned by the `decision` function.
+  The returned block is used as next block in the control flow.
 - `babble.reply(callback: Function) : Block`
   Create a flow starting with a Reply block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is send to the
   connected peer.
-- `babble.then(start: Block]) : Block`
+- `babble.then(block: Block) : Block`
   Create a flow starting with given block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is send to the

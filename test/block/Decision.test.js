@@ -13,10 +13,40 @@ describe('Decision', function() {
       no: new Block()
     });
     assert.ok(decision2 instanceof Decision);
+    assert.deepEqual(decision2.choices, {
+      yes: new Block(),
+      no: new Block()
+    });
+  });
+
+  it('should add choices to a decision', function () {
+    var decision = new Decision();
+    assert.deepEqual(decision.choices, {});
+    decision.addChoice('yes', new Block());
+    decision.addChoice('no', new Block());
+
+    assert.deepEqual(decision.choices, {
+      yes: new Block(),
+      no: new Block()
+    });
+  });
+
+  it('should throw an error when adding invalid choices to a decision', function () {
+    var decision = new Decision();
+    assert.deepEqual(decision.choices, {});
+
+    assert.throws(function () {
+      decision.addChoice();
+    });
+    assert.throws(function () {
+      decision.addChoice(123, new Block());
+    });
+    assert.throws(function () {
+      decision.addChoice('id', function() {});
+    });
   });
 
   it('should throw an error when wrongly creating a decision', function () {
-    assert.throws(function () { Decision()}, SyntaxError);
     assert.throws(function () { Decision({
       yes: new Block(),
       no: 'no block'
