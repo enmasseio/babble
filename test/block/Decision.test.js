@@ -83,7 +83,7 @@ describe('Decision', function() {
     });
 
     var context = {};
-    var next = decision.execute(context, 'yes');
+    var next = decision.execute('yes', context);
     assert.deepEqual(next, {
       result: undefined,
       block: yes
@@ -120,7 +120,7 @@ describe('Decision', function() {
       yes: yes
     });
 
-    var next = decision.execute(context);
+    var next = decision.execute(undefined, context);
     assert.deepEqual(next, {
       result: undefined,
       block: yes
@@ -138,7 +138,7 @@ describe('Decision', function() {
       yes: yes
     });
 
-    var next = decision.execute(context, 'hello world');
+    var next = decision.execute('hello world', context);
     assert.deepEqual(next, {
       result: undefined,
       block: yes

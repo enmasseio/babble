@@ -37,7 +37,7 @@ describe('Action', function() {
       assert.deepEqual(context, {a: 2});
     });
 
-    var next = action.execute(context);
+    var next = action.execute(undefined, context);
     assert.deepEqual(next, {
       result: undefined,
       block: undefined
@@ -51,7 +51,7 @@ describe('Action', function() {
       assert.deepEqual(context, {a: 2});
     });
 
-    var next = action.execute(context, 'hello world');
+    var next = action.execute('hello world', context);
     assert.deepEqual(next, {
       result: undefined,
       block: undefined

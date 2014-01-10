@@ -39,7 +39,7 @@ describe('Reply', function() {
       return 'foo';
     });
 
-    var next = reply.execute(context);
+    var next = reply.execute(undefined, context);
     assert.deepEqual(next, {
       result: 'foo',
       block: undefined
@@ -54,7 +54,7 @@ describe('Reply', function() {
       return 'foo'
     });
 
-    var next = reply.execute(context, 'hello world');
+    var next = reply.execute('hello world', context);
     assert.deepEqual(next, {
       result: 'foo',
       block: undefined
