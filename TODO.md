@@ -1,6 +1,7 @@
 # TO DO
 
-- Introduce flow blocks Listen and Send?
+- Rename block Reply to Send?
+- Change Babbler.ask such that it doesn't do two steps (Send and Listen)?
 - Implement error handling
 - Implement support for promises to allow async callback functions
 - Store message history in context.
