@@ -6,9 +6,6 @@ describe('Action', function() {
   it('should create an action', function () {
     var action1 = new Action(function () {});
     assert.ok(action1 instanceof Action);
-
-    var action2 = new Action(function () {}, new Action(function () {}));
-    assert.ok(action2 instanceof Action);
   });
 
   it('should throw an error when wrongly creating an action', function () {

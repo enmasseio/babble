@@ -4,10 +4,7 @@ var assert = require('assert'),
 describe('Reply', function() {
 
   it('should create a reply', function () {
-    var reply1 = new Reply(function () {});
-    assert.ok(reply1 instanceof Reply);
-
-    var reply2 = new Reply(function () {}, new Reply(function () {}));
+    var reply2 = new Reply(function () {});
     assert.ok(reply2 instanceof Reply);
   });
 

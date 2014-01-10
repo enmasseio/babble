@@ -207,7 +207,7 @@ Babbler.prototype.ask = function ask (id, message, data) {
 Babbler.prototype._run = function _run (conversation, message) {
   //console.log('_run', conversation, message); // TODO: cleanup
   var block = conversation.next;
-  var next = block.execute(conversation.context, message);
+  var next = block.execute(message, conversation.context);
   var result = next.result;
   conversation.next = next.block;
 
@@ -336,10 +336,9 @@ var Block = require('./Block');
  * Action
  * Execute an action.
  * @param {Function} callback   Invoked as callback(response, context),
- *                              where `response` is the last received message,
- *                              and `context` is an object where state can
- *                              be stored during a conversation.
- *                              The callback should return nothing.
+ *                              where `response` is the output from the previous
+ *                              block in the chain, and `context` is an object
+ *                              where state can be stored during a conversation.
  * @constructor
  * @extends {Block}
  */
@@ -359,34 +358,29 @@ Action.prototype = Object.create(Block.prototype);
 
 /**
  * Execute the block
+ * @param {*} message
  * @param {Object} context
- * @param {String} [arg=undefined]
  * @return {{result: *, block: Block}} next
  */
-Action.prototype.execute = function execute (context, arg) {
-  var result = this.callback(arg, context);
-
-  if (result !== undefined) {
-    throw new Error('Callback of Action must return undefined');
-  }
+Action.prototype.execute = function execute (message, context) {
+  var result = this.callback(message, context);
 
   return {
-    result: undefined,
+    result: result,
     block: this.next
   };
 };
 
 /**
  * Create an action block and chain it to the current block.
+ * Returns the first block in the chain.
  * @param {Function} callback   Executed as callback(message: *, context: Object)
- * @return {Action} block
+ * @return {Block} first        First block in the chain
  */
 Block.prototype.run = function run (callback) {
   var action = new Action(callback);
 
-  this.then(action);
-
-  return action;
+  return this.then(action);
 };
 
 module.exports = Action;
@@ -403,40 +397,43 @@ function Block() {
 
 /**
  * Execute the block
+ * @param {*} message
  * @param {Object} context
- * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Block.prototype.execute = function execute (context, arg) {
+Block.prototype.execute = function execute (message, context) {
   throw new Error('Cannot run an abstract Block');
 };
 
 /**
- * Chain a block to the current block
+ * Chain a block to the current block. The new block is appended to the *last*
+ * block in the chain, and the function returns the *first* block in the chain.
  * @param {Block} next
- * @return {Block} next
+ * @return {Block} first  First block in the chain
  */
 Block.prototype.then = function then (next) {
   if (!(next instanceof Block)) {
     throw new TypeError('Parameter next must be a Block');
   }
 
-  next.previous = this;
-  this.next = next;
-
-  return next;
-};
-
-/**
- * Get the first block in this control flow
- * @return {Block} first
- */
-Block.prototype.done = function done() {
-  var block = this;
-  while (block.previous) {
-    block = block.previous;
+  // find the last block in the chain
+  var last = this;
+  while (last.next) {
+    last = last.next;
   }
-  return block;
+
+  // find the first block in the chain.
+  var first = this;
+  while (first.previous) {
+    first = first.previous;
+  }
+
+  // append after the last block
+  next.previous = this;
+  last.next = next;
+
+  // return the first block
+  return first;
 };
 
 module.exports = Block;
@@ -458,14 +455,14 @@ var Block = require('./Block');
  *     {Function | Object} [decision]
  *                              When a `decision` function is provided, the
  *                              function is invoked as decision(response, context),
- *                              where `response` is the last received message,
- *                              and `context` is an object where state can be
- *                              stored during a conversation. The function must
- *                              return the id for the next block in the control
- *                              flow, which must be available in the provided
- *                              `options`. If `decision` is not provided, the
- *                              next block will be mapped directly from the
- *                              response.
+ *                              where `response` is the output from the previous
+ *                              block in the chain, and `context` is an object
+ *                              where state can be stored during a conversation.
+ *                              The function must return the id for the next
+ *                              block in the control flow, which must be
+ *                              available in the provided `choices`.
+ *                              If `decision` is not provided, the next block
+ *                              will be mapped directly from the response.
  *     {Object.<String, Block>} choices
  *                              A map with the possible next blocks in the flow
  *                              The next block is selected by the id returned
@@ -492,39 +489,43 @@ function Decision (arg1, arg2) {
     choices = arg1;
   }
 
-  if (!decision) {
+  if (decision) {
+    if (typeof decision !== 'function') {
+      throw new TypeError('Parameter decision must be a function');
+    }
+  }
+  else {
     decision = function (response) {
       return response;
     }
   }
-  else if ((typeof decision !== 'function')) {
-    throw new TypeError('Parameter decision must be a function');
-  }
-  if (!choices || choices instanceof Function) {
+
+  if (choices && (choices instanceof Function)) {
     throw new TypeError('Parameter choices must be an object');
   }
 
-  // Test whether all choices values are blocks
-  Object.keys(choices).forEach(function (id) {
-    if (!(choices[id] instanceof Block)) {
-      throw new TypeError('choices must be an object containing Blocks');
-    }
-  });
-
   this.decision = decision;
-  this.choices = choices;
+  this.choices = {};
+
+  // append all choices
+  if (choices) {
+    var me = this;
+    Object.keys(choices).forEach(function (id) {
+      me.addChoice(id, choices[id]);
+    });
+  }
 }
 
 Decision.prototype = Object.create(Block.prototype);
 
 /**
  * Execute the block
+ * @param {*} message
  * @param {Object} context
- * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Decision.prototype.execute = function execute (context, arg) {
-  var id = this.decision(arg, context);
+Decision.prototype.execute = function execute (message, context) {
+  var id = this.decision(message, context);
 
   if (typeof id !== 'string') {
     throw new TypeError('Decision function must return a string containing ' +
@@ -537,13 +538,38 @@ Decision.prototype.execute = function execute (context, arg) {
   }
 
   return {
-    result: undefined,
+    result: message,
     block: next
   };
 };
 
 /**
+ * Add a choice to the decision block
+ * @param {String} id
+ * @param {Block} block
+ * @return {Decision} self
+ */
+Decision.prototype.addChoice = function addChoice (id, block) {
+  if (typeof id !== 'string') {
+    throw new TypeError('String expected as choice id');
+  }
+
+  if (!(block instanceof Block)) {
+    throw new TypeError('Block expected as choice');
+  }
+
+  if (id in this.choices) {
+    throw new Error('Choice with id "' + id + '" already exists');
+  }
+
+  this.choices[id] = block;
+
+  return this;
+};
+
+/**
  * Create a decision block and chain it to the current block.
+ * Returns the first block in the chain.
  *
  * Syntax:
  *
@@ -555,30 +581,28 @@ Decision.prototype.execute = function execute (context, arg) {
  *     {Function | Object} [decision]
  *                              When a `decision` function is provided, the
  *                              function is invoked as decision(response, context),
- *                              where `response` is the last received message,
- *                              and `context` is an object where state can be
- *                              stored during a conversation. The function must
- *                              return the id for the next block in the control
- *                              flow, which must be available in the provided
- *                              `options`. If `decision` is not provided, the
- *                              next block will be mapped directly from the
- *                              response.
+ *                              where `response` is the output from the previous
+ *                              block in the chain, and `context` is an object
+ *                              where state can be stored during a conversation.
+ *                              The function must return the id for the next
+ *                              block in the control flow, which must be
+ *                              available in the provided `choices`.
+ *                              If `decision` is not provided, the next block
+ *                              will be mapped directly from the response.
  *     {Object.<String, Block>} choices
  *                              A map with the possible next blocks in the flow
  *                              The next block is selected by the id returned
  *                              by the decision function.
  *
- * @param arg1   Can be {function} decision or {Object} choices
- * @param [arg2] {Object} choices
- * @return {Decision} decision
+ * @param {Function | Object} arg1  Can be {function} decision or {Object} choices
+ * @param {Object} [arg2]           choices
+ * @return {Block} first            First block in the chain
  */
 Block.prototype.decide = function decide (arg1, arg2) {
   // TODO: test arguments.length > 2
   var decision = new Decision(arg1, arg2);
 
-  this.then(decision);
-
-  return decision;
+  return this.then(decision);
 };
 
 module.exports = Decision;
@@ -590,11 +614,11 @@ var Block = require('./Block');
  * Reply
  * Handle a reply to a message.
  * @param {Function} callback   Invoked as callback(response, context),
- *                              where `response` is the last received message,
- *                              and `context` is an object where state can
- *                              be stored during a conversation.
- *                              The function must return something, the
- *                              returned result will be send back to the sender.
+ *                              where `response` is the output from the previous
+ *                              block in the chain, and `context` is an object
+ *                              where state can be stored during a conversation.
+ *                              The result returned by the function will be
+ *                              send back to the sender.
  * @constructor
  * @extends {Block}
  */
@@ -614,16 +638,12 @@ Reply.prototype = Object.create(Block.prototype);
 
 /**
  * Execute the block
+ * @param {*} message
  * @param {Object} context
- * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Reply.prototype.execute = function execute (context, arg) {
-  var result = this.callback(arg, context);
-
-  if (result === undefined) {
-    throw new Error('Callback of Reply returned undefined');
-  }
+Reply.prototype.execute = function execute (message, context) {
+  var result = this.callback(message, context);
 
   return {
     result: result,
@@ -633,16 +653,15 @@ Reply.prototype.execute = function execute (context, arg) {
 
 /**
  * Create a Reply block and chain it to the current block
+ * Returns the first block in the chain.
  * @param {Function} callback   Executed as callback(message: *, context: Object)
  *                              Must return a result
- * @return {Reply} reply
+ * @return {Block} first        First block in the chain
  */
 Block.prototype.reply = function reply (callback) {
   var block = new Reply(callback);
 
-  this.then(block);
-
-  return block;
+  return this.then(block);
 };
 
 module.exports = Reply;
@@ -665,13 +684,13 @@ Start.prototype = Object.create(Block.prototype);
 
 /**
  * Execute the block
+ * @param {*} message
  * @param {Object} context
- * @param {String} [arg]
  * @return {{result: *, block: Block}} next
  */
-Start.prototype.execute = function execute (context, arg) {
+Start.prototype.execute = function execute (message, context) {
   return {
-    result: undefined,
+    result: message,
     block: this.next
   };
 };

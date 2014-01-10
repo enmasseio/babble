@@ -1,5 +1,6 @@
 # TO DO
 
+- Enable babble.listen(message, callback)
 - Introduce flow blocks Listen and Send?
 - Implement error handling
 - Implement support for promises to allow async callback functions

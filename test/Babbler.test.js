@@ -84,7 +84,7 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'add', {a:2, b:3})
-          .run(function (result) {
+          .listen(function (result) {
             assert.equal(result, 5);
             done();
           });
@@ -95,14 +95,14 @@ describe('Babbler', function() {
           .reply(function (count) {
             return count + 1;
           })
-          .run(function (count) {
+          .listen(function (count) {
             assert.equal(count, 3);
             done();
           });
 
       jack.ask('emma', 'count', 0)
+          .listen()
           .reply(function (count) {
-            assert.equal(count, 1);
             return count + 2;
           });
     });
@@ -115,6 +115,7 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'are you available?')
+          .listen()
           .decide(function (response) {
             assert.equal(response, 'yes');
             return response;
@@ -140,7 +141,7 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'are you available?')
-          .run(function (response) {
+          .listen(function (response) {
             assert.equal(response, 'yes');
             logs.push('log 3');
           })
