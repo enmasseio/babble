@@ -32,36 +32,30 @@ function check (guess, context) {
 }
 
 var options = {};
-var validateGuess = babble.decide(check, options).done();
+var validateGuess = babble.decide(check, options);
 options.higher = babble.reply(function () {
       console.log('emma: higher');
       return 'higher';
     })
-    .then(validateGuess)
-    .done();
+    .then(validateGuess);
 
 options.lower = babble.reply(function () {
       console.log('emma: lower');
       return 'lower';
     })
-    .then(validateGuess)
-    .done();
+    .then(validateGuess);
 
 options.right = babble.reply(function () {
       console.log('emma: right!');
       return 'right';
-    })
-    .done();
+    });
 
 emma.listen('lets play guess the number')
     .decide(function () {
       return (Math.random() > 0.2) ? 'start': 'deny';
     }, {
-      start: babble.reply(startGame)
-          .then(validateGuess)
-          .done(),
+      start: babble.reply(startGame).then(validateGuess),
       deny: babble.reply(denyGame)
-          .done()
     });
 
 /* -------------------------------------------------------------------------- */
@@ -101,18 +95,16 @@ var guessNext = function (response, context) {
 var guessChoices = {};
 var checkGuess = babble.decide(function (response) {
   return (response == 'right') ? 'right': 'wrong';
-}, guessChoices).done();
-guessChoices.right = babble.run(triumph).done();
-guessChoices.wrong = babble.reply(guessNext).then(checkGuess).done();
+}, guessChoices);
+guessChoices.right = babble.run(triumph);
+guessChoices.wrong = babble.reply(guessNext).then(checkGuess);
 
 jack.ask('emma', 'lets play guess the number')
     .decide(function (response) {
       return (response == 'ok') ? 'ok': 'notOk';
       }, {
-      ok: babble.reply(initialize)
-          .then(checkGuess)
-          .done(),
-      notOk: babble.run(whine).done()
+      ok: babble.reply(initialize).then(checkGuess),
+      notOk: babble.run(whine)
     });
 
 

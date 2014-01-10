@@ -20,18 +20,14 @@ emma.listen('do you have time today?')
           }, {
             ok: babble.reply(function () {
                   return 'ok';
-                })
-                .done(),
+                }),
             no: babble.reply(function () {
                   return 'no';
                 })
-                .done()
-          })
-          .done(),
+          }),
       no: babble.reply(function () {
             return 'no';
           })
-          .done()
     });
 
 jack.ask('emma', 'do you have time today?')
@@ -44,16 +40,12 @@ jack.ask('emma', 'do you have time today?')
           }, {
             ok: babble.run(function () {
                   console.log('emma agreed');
-                })
-                .done(),
+                }),
             notOk: babble.run(function () {
                   console.log('emma didn\'t agree');
                 })
-                .done()
-          })
-          .done(),
+          }),
       no: babble.run(function () {
             console.log('emma has no time');
           })
-          .done()
     });

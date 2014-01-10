@@ -179,7 +179,6 @@ describe('Babbler', function() {
                   assert.equal(context.c, 3);
                   done();
                 })
-                .done()
           });
 
       jack.ask('emma', 'question', 'a')

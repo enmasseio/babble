@@ -59,14 +59,12 @@ var emma = babble.babbler('emma').subscribe(),
 emma.listen('ask age')
     .reply(function () {
       return 25;
-    }))
-    .done();
+    }));
 
 jack.ask('emma', 'ask age')
 .run(function (age, context) {
       console.log(context.from + ' is ' + age + ' years old');
-    }))
-    .done();
+    }));
 ```
 
 ## Control flow
@@ -149,18 +147,14 @@ emma.listen('do you have time today?')
           }, {
             ok: babble.reply(function () {
                   return 'ok';
-                })
-                .done(),
+                }),
             no: babble.reply(function () {
                   return 'no';
                 })
-                .done()
-          })
-          .done(),
+          }),
       no: babble.reply(function () {
             return 'no';
           })
-          .done()
     });
 
 jack.ask('emma', 'do you have time today?')
@@ -173,18 +167,14 @@ jack.ask('emma', 'do you have time today?')
           }, {
             ok: babble.run(function () {
                   console.log('emma agreed');
-                })
-                .done(),
+                }),
             notOk: babble.run(function () {
                   console.log('emma didn\'t agree');
                 })
-                .done()
-          })
-          .done(),
+          }),
       no: babble.run(function () {
             console.log('emma has no time');
           })
-          .done()
     });
 ```
 
@@ -195,20 +185,20 @@ Babble has the following factory functions:
 
 - `babble.babbler(id: String) : Babbler`
   Factory function to create a new Babbler.
-- `babble.run(callback: Function) : FlowBuilder`
+- `babble.run(callback: Function) : Block`
   Create a flow starting with an Action block. The provided callback function
   is called as `callback(response, context)` and should not return a result.
-- `babble.decide(callback: Function) : FlowBuilder`
+- `babble.decide(callback: Function) : Block`
   Create a flow starting with a Decision block. The callback function is called
   as `callback(response, context) : Block`, and must return an instance of
   `Block` (an Action, Reply, or Decision). The returned block is used as next
   block in the control flow.
-- `babble.reply(callback: Function) : FlowBuilder`
+- `babble.reply(callback: Function) : Block`
   Create a flow starting with a Reply block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is send to the
   connected peer.
-- `babble.then(start: Block]) : FlowBuilder`
+- `babble.then(start: Block]) : Block`
   Create a flow starting with given block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is send to the
@@ -218,7 +208,6 @@ Babble contains the following prototypes. These prototypes are normally
 instantiated via the above mentioned factory functions.
 
 - `babble.Babbler`
-- `babble.FlowBuilder`
 - `babble.block.Block`
 - `babble.block.Action`
 - `babble.block.Decision`
@@ -268,16 +257,18 @@ Blocks can be chained together, resulting in a control flow.
 
 A Block has the following functions:
 
-- `done() : Block`
-  Finalize the control flow, returns the first block of the flow.
 - `reply(callback: Function) : Block`
-  Append a Reply block to the control flow.
+  Append a Reply block to the control flow. Returns the first block in the
+  chain.
 - `then(block : Block) : Block`
-  Append an arbitrary block to the control flow.
+  Append an arbitrary block to the control flow. Returns the first block in the
+  chain.
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`
-  Append a decision block to the control flow.
+  Append a decision block to the control flow. Returns the first block in the
+  chain.
 - `run(callback: Function) : Block`
-  Append an Action block to the control flow.
+  Append an Action block to the control flow. Returns the first block in the
+  chain.
 
 
 ## Build
