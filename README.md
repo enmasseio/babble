@@ -83,7 +83,7 @@ response from emma.
 
 This scenario can be represented by the following control flow diagram:
 
-![ask age](https://raw.github.com/josdejong/babble/master/img/ask_age.png)
+![ask age](https://raw.github.com/josdejong/babble/master/img/say_hi.png)
 
 The scenario is programmed as:
 
