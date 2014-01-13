@@ -4,7 +4,7 @@ var assert = require('assert'),
 describe('Tell', function() {
 
   it('should create a tell', function () {
-    var tell1 = new Tell('hello world');
+    var tell1 = new Tell();
     assert.ok(tell1 instanceof Tell);
 
     var tell2 = new Tell(function () {});
@@ -13,7 +13,7 @@ describe('Tell', function() {
 
   it('should throw an error when wrongly creating a tell', function () {
     assert.throws(function () { Tell(function () {}) }, SyntaxError);
-    assert.throws(function () { new Tell()}, TypeError);
+    assert.throws(function () { new Tell('hello')}, TypeError);
   });
 
   it('should execute a tell without arguments', function () {
