@@ -2,10 +2,11 @@
 https://github.com/josdejong/babble
 
 
-## not yet released, version 0.5.0
+## 2014-01-13, version 0.5.0
 
 - Messages can now be of any type, not only string.
 - Consistency of API improved.
+- Improved examples.
 
 
 ## 2014-01-10, version 0.4.0
