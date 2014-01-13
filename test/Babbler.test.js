@@ -1,7 +1,7 @@
 var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
     Block = require('../lib/block/Block'),
-    Reply = require('../lib/block/Reply'),
+    Tell = require('../lib/block/Tell'),
     Action = require('../lib/block/Action'),
     Decision = require('../lib/block/Decision');
 
@@ -77,9 +77,9 @@ describe('Babbler', function() {
 
   describe ('ask', function () {
 
-    it('should ask a question and reply', function(done) {
+    it('should send a message and listen for a reply', function(done) {
       emma.listen('add')
-          .reply(function (data) {
+          .tell(function (data) {
             return data.a + data.b;
           });
 
@@ -89,9 +89,9 @@ describe('Babbler', function() {
           });
     });
 
-    it ('should ask a question, reply, and reply on the reply', function(done) {
+    it ('should send a message, listen, and send a reply', function(done) {
       emma.listen('count')
-          .reply(function (count) {
+          .tell(function (count) {
             return count + 1;
           })
           .listen(function (count) {
@@ -100,7 +100,7 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'count', 0)
-          .reply(function (count) {
+          .tell(function (count) {
             return count + 2;
           });
     });
@@ -116,7 +116,7 @@ describe('Babbler', function() {
 
     it ('should invoke the callback provided with ask', function(done) {
       emma.listen('age')
-          .reply(function () {
+          .tell(function () {
             return 32;
           });
 
@@ -128,7 +128,7 @@ describe('Babbler', function() {
 
     it ('should invoke the callback provided with an ask with data', function(done) {
       emma.listen('double')
-          .reply(function (value) {
+          .tell(function (value) {
             return value * 2;
           });
 
@@ -140,7 +140,7 @@ describe('Babbler', function() {
 
     it('should make a decision during a conversation', function(done) {
       emma.listen('are you available?')
-          .reply(function (data) {
+          .tell(function (data) {
             assert.strictEqual(data, undefined);
             return 'yes';
           });
@@ -164,7 +164,7 @@ describe('Babbler', function() {
           .run(function (response) {
             logs.push('log 1');
           })
-          .reply(function (response) {
+          .tell(function (response) {
             logs.push('log 2');
             assert.strictEqual(response, undefined);
             return 'yes';
@@ -195,7 +195,7 @@ describe('Babbler', function() {
 
             return 'first';
           }, {
-            first: new Reply(function (response, context) {
+            first: new Tell(function (response, context) {
                   assert.equal(response, 'a');
                   assert.equal(context.a, 1);
                   assert.equal(context.b, 2);
@@ -217,7 +217,7 @@ describe('Babbler', function() {
             context.a = 1;
             return response;
           })
-          .reply(function (response, context) {
+          .tell(function (response, context) {
             assert.equal(response, 'b');
             assert.equal(context.a, 1);
 

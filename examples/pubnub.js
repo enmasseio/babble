@@ -23,7 +23,7 @@ async.parallel({
 },
 function (err, babblers) {
   babblers.emma.listen('ask age')
-      .reply(function (response) {
+      .tell(function (response) {
         return 25;
       });
 

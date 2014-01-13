@@ -2,7 +2,7 @@ var assert = require('assert'),
     babble = require('../index'),
     Babbler = require('../lib/Babbler'),
 
-    Reply = require('../lib/block/Reply'),
+    Tell = require('../lib/block/Tell'),
     Decision = require('../lib/block/Decision'),
     Action = require('../lib/block/Action');
 
@@ -17,9 +17,9 @@ describe('babbler', function() {
     assert.throws(function () {babble.babbler(); });
   });
 
-  it('should create a flow starting with a reply block', function() {
-    var block = babble.reply(function () {});
-    assert.ok(block instanceof Reply);
+  it('should create a flow starting with a tell block', function() {
+    var block = babble.tell(function () {});
+    assert.ok(block instanceof Tell);
   });
 
   it('should create a flow starting with a decision block', function() {
@@ -31,6 +31,4 @@ describe('babbler', function() {
     var block = babble.run(function () {});
     assert.ok(block instanceof Action);
   });
-
-  // TODO: test reply, decide, run
 });

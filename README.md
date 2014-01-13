@@ -3,8 +3,8 @@
 Dynamic communication flows between message based actors.
 
 Babble makes it easy to code communication flows between actors. A conversation
-is modeled as a control flow diagram containing blocks `listen`, `ask`, `tell`,
-`reply`, `decide`, and `run`. Each block can link to a next block in the
+is modeled as a control flow diagram containing blocks `ask`, `tell`, `listen`,
+`decide`, and `run`. Each block can link to a next block in the
 control flow. Conversations are dynamic: a scenario is build programmatically,
 and the blocks can dynamically determine the next block in the scenario.
 During a conversation, a context is available to store the state of the
@@ -57,7 +57,7 @@ var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
 emma.listen('ask age')
-    .reply(function () {
+    .tell(function () {
       return 25;
     }));
 
@@ -95,7 +95,7 @@ var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
 emma.listen('ask age')
-    .reply(function () {
+    .tell(function () {
       return 25;
     });
 
@@ -158,13 +158,13 @@ function no () {
 
 emma.listen('do you have time today?')
     .decide(decideIfAvailable, {
-      yes: babble.reply(yes)
+      yes: babble.tell(yes)
               .listen()
               .decide(decideToAgree, {
-                ok: babble.reply(ok),
-                no: babble.reply(no)
+                ok: babble.tell(ok),
+                no: babble.tell(no)
               }),
-      no: babble.reply(no)
+      no: babble.tell(no)
     });
 
 function askToMeet () {
@@ -189,7 +189,7 @@ function noAgreement () {
 
 jack.ask('emma', 'do you have time today?')
     .decide({
-      yes: babble.reply(askToMeet)
+      yes: babble.tell(askToMeet)
               .listen()
               .decide(agreesToMeet, {
                 ok: babble.run(agreement),
@@ -218,8 +218,8 @@ Babble has the following factory functions:
   `response`. Parameter `choices` is a map with the possible next blocks in the
   flow. The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
-- `babble.reply(callback: Function) : Block`
-  Create a flow starting with a Reply block. The provided callback function
+- `babble.tell(callback: Function) : Block`
+  Create a flow starting with a Tell block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is send to the
   connected peer.
@@ -236,7 +236,7 @@ instantiated via the above mentioned factory functions.
 - `babble.block.Block`
 - `babble.block.Action`
 - `babble.block.Decision`
-- `babble.block.Reply`
+- `babble.block.Tell`
 - `babble.block.Start`
 
 ### Babbler
@@ -271,14 +271,14 @@ A babbler has the following functions:
   Send a notification to another peer.
 
 - `ask(id: String, message: String [,data: JSON] [, callback: Function]) : Block`
-  Send a question to another peer. Returns a `start` Block which is executed
-  When the reply comes in. Other blocks can be chained to the returned block.
+  Send a question to another peer. Other blocks can be chained to the returned
+  block.
 
 ### Block
 
 Blocks can be created via the factory functions available in `babble`
-(`reply`, `decide`, `run`, `then`, `listen`), or in a Babbler (`listen`, `ask`).
-Blocks can be chained together, resulting in a control flow. The results
+(`tell`, `decide`, `run`, `then`, `listen`), or in a Babbler (`listen`, `tell`,
+`ask`). Blocks can be chained together, resulting in a control flow. The results
 returned by blocks are used as input argument for the next block in the chain.
 
 A Block has the following functions:
@@ -286,8 +286,8 @@ A Block has the following functions:
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`
   Append a decision block to the control flow. Returns the first block in the
   chain.
-- `reply(callback: Function) : Block`
-  Append a Reply block to the control flow. Returns the first block in the
+- `tell(callback: Function) : Block`
+  Append a Tell block to the control flow. Returns the first block in the
   chain.
 - `listen([callback: Function]) : Block`
   Append a Listen block to the control flow. Returns the first block in the

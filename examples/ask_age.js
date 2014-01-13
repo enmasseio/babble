@@ -4,7 +4,7 @@ var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
 emma.listen('ask age')
-    .reply(function () {
+    .tell(function () {
       return 25;
     });
 

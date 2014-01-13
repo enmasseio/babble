@@ -30,13 +30,13 @@ function no () {
 
 emma.listen('do you have time today?')
     .decide(decideIfAvailable, {
-      yes: babble.reply(yes)
+      yes: babble.tell(yes)
               .listen()
               .decide(decideToAgree, {
-                ok: babble.reply(ok),
-                no: babble.reply(no)
+                ok: babble.tell(ok),
+                no: babble.tell(no)
               }),
-      no: babble.reply(no)
+      no: babble.tell(no)
     });
 
 function askToMeet () {
@@ -61,7 +61,7 @@ function noAgreement () {
 
 jack.ask('emma', 'do you have time today?')
     .decide({
-      yes: babble.reply(askToMeet)
+      yes: babble.tell(askToMeet)
               .listen()
               .decide(agreesToMeet, {
                 ok: babble.run(agreement),

@@ -52,14 +52,14 @@ var MIN = 0,
   }
 
   var check = babble.decide(decideIfCorrect);
-  check.addChoice('higher', babble.reply(higher).listen().then(check));
-  check.addChoice('lower',  babble.reply(lower).listen().then(check));
-  check.addChoice('right',  babble.reply(right));
+  check.addChoice('higher', babble.tell(higher).listen().then(check));
+  check.addChoice('lower',  babble.tell(lower).listen().then(check));
+  check.addChoice('right',  babble.tell(right));
 
   emma.listen('lets play guess the number')
       .decide(decideToPlay, {
-        start: babble.reply(start).listen().then(check),
-        deny:  babble.reply(deny)
+        start: babble.tell(start).listen().then(check),
+        deny:  babble.tell(deny)
       });
 
 })();
@@ -105,11 +105,11 @@ var MIN = 0,
 
   var checkGuess = babble.decide(decideIfCorrect);
   checkGuess.addChoice('right', babble.run(triumph));
-  checkGuess.addChoice('wrong', babble.reply(guess).listen().then(checkGuess));
+  checkGuess.addChoice('wrong', babble.tell(guess).listen().then(checkGuess));
 
   jack.ask('emma', 'lets play guess the number')
       .decide(decideToStart, {
-        start:  babble.run(start).reply(guess).listen().then(checkGuess),
+        start:  babble.run(start).tell(guess).listen().then(checkGuess),
         cancel: babble.run(whine)
       });
 
