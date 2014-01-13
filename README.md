@@ -267,7 +267,7 @@ A babbler has the following functions:
   Listen for incoming messages. If there is a match, the returned control flow
   block will be executed. Other blocks can be chained to the returned block.
 
-- `tell(id: String, message: String)`
+- `tell(id: String, message: *)`
   Send a notification to another peer.
 
 - `ask(id: String, message: String [, callback: Function]) : Block`
@@ -286,9 +286,9 @@ A Block has the following functions:
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`
   Append a decision block to the control flow. Returns the first block in the
   chain.
-- `tell(callback: Function) : Block`
-  Append a Tell block to the control flow. Returns the first block in the
-  chain.
+- `tell(message: *) : Block`
+  Append a Tell block to the control flow. Parameter `message` can be callback
+  function or an object or value. Returns the first block in the chain.
 - `listen([callback: Function]) : Block`
   Append a Listen block to the control flow. Returns the first block in the
   chain.
