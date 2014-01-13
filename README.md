@@ -61,8 +61,7 @@ emma.listen('ask age')
       return 25;
     }));
 
-jack.ask('emma', 'ask age')
-    .run(function (age, context) {
+jack.ask('emma', 'ask age', function (age, context) {
       console.log(context.from + ' is ' + age + ' years old');
     }));
 ```
@@ -74,13 +73,13 @@ TODO: describe control flow blocks
 
 ## Examples
 
-### Ask a question
+### Say hi
 
 Babble can be used to listen for messages and send a reply. In the following
-example, emma listens for two messages: "ask age" and "tell age". In the first
-case she will reply telling her age, in the second case she just outputs the
-received age. Jack first tells his age, and then asks emma's age, waits for
-her to reply, and then output the received age.
+example, emma listens for a message "hi", then she will listen to the next
+message. Depending on the contents of this second message, she determines how
+to respond. Jack says hi to emma, then tells his name or age, and awaits a
+response from emma.
 
 This scenario can be represented by the following control flow diagram:
 
@@ -94,25 +93,32 @@ var babble = require('babble');
 var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
-emma.listen('ask age')
-    .tell(function () {
-      return 25;
+function printMessage (message, context) {
+  console.log(context.from + ': ' + message);
+}
+
+emma.listen('hi')
+    .listen()
+    .decide(function (message, context) {
+      printMessage(message, context);
+      return (message.indexOf('age') != -1) ? 'age' : 'name';
+    }, {
+      'name': babble.tell('hi, my name is emma'),
+      'age':  babble.tell('hi, my age is 27')
     });
 
-emma.listen('tell age')
-    .run(function (age, context) {
-      console.log(context.from + ' is ' +  age + ' years old');
-    });
+jack.tell('emma', 'hi')
+    .tell('my name is jack')
+    .listen(printMessage);
 
-jack.tell('emma', 'tell age', 27);
+jack.tell('emma', 'hi')
+    .tell('my age is 25')
+    .listen()
+    .run(printMessage);
 
-jack.ask('emma', 'ask age')
-    .run(function (age, context) {
-      console.log(context.from + ' is ' + age + ' years old');
-    });
 ```
 
-### Have a conversation
+### Plan a meeting
 
 The following scenario describes two peers planning a meeting in two steps:
 First jack asks whether emma has time for a meeting, and if so, jack will

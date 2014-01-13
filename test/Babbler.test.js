@@ -62,14 +62,36 @@ describe('Babbler', function() {
       jack.tell('emma', 'test');
     });
 
-    it.skip('should tell two messages subsequently', function(done) {
+    it('should tell two messages subsequently', function(done) {
       emma.listen('foo')
           .listen(function (response) {
             assert.deepEqual(response, 'bar');
             done();
           });
 
-      jack.tell('emma', 'foo').tell('bar');
+      jack.tell('emma', 'foo')
+          .tell('bar');
+    });
+
+    it('should chain some blocks to a Tell block', function(done) {
+      emma.listen('foo')
+          .listen(function (response) {
+            assert.equal(response, 'bar');
+          })
+          .tell('bye');
+
+      jack.tell('emma', 'foo')
+          .run(function (response) {
+            assert.equal(response, 'foo');
+            return 'bar';
+          })
+          .tell(function (response) {
+            return response;
+          })
+          .listen(function (response) {
+            assert.equal(response, 'bye');
+            done();
+          });
     });
 
   });
