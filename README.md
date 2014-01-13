@@ -267,10 +267,10 @@ A babbler has the following functions:
   Listen for incoming messages. If there is a match, the returned control flow
   block will be executed. Other blocks can be chained to the returned block.
 
-- `tell(id: String, message: String [, data: JSON])`
+- `tell(id: String, message: String)`
   Send a notification to another peer.
 
-- `ask(id: String, message: String [,data: JSON] [, callback: Function]) : Block`
+- `ask(id: String, message: String [, callback: Function]) : Block`
   Send a question to another peer. Other blocks can be chained to the returned
   block.
 

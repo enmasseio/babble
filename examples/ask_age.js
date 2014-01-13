@@ -8,12 +8,12 @@ emma.listen('ask age')
       return 25;
     });
 
-emma.listen('tell age')
-    .run(function (age, context) {
+emma.listen('my age is')
+    .listen(function (age, context) {
       console.log(context.from + ' is ' +  age + ' years old');
     });
 
-jack.tell('emma', 'tell age', 27);
+jack.tell('emma', 'my age is').tell(27);
 
 jack.ask('emma', 'ask age')
     .run(function (age, context) {

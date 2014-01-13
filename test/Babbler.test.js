@@ -25,21 +25,21 @@ describe('Babbler', function() {
     jack = null;
   });
 
-  it.skip('should create and destroy a babbler', function() {
+  it('should create and destroy a babbler', function() {
     var susan = new Babbler('susan').subscribe();
     assert.ok(susan instanceof Babbler);
     susan.unsubscribe();
   });
 
-  it.skip('should throw an error when creating a babbler with wrong syntax', function() {
+  it('should throw an error when creating a babbler with wrong syntax', function() {
     assert.throws (function () {new Babbler(); });
     assert.throws (function () {Babbler('whoops'); });
   });
 
-  describe.skip ('listen', function () {
+  describe ('listen', function () {
 
     it ('should listen to a message', function () {
-      emma.listen('test', new Block());
+      emma.listen('test');
 
       assert.equal(Object.keys(emma.listeners).length, 1);
     });
@@ -51,26 +51,25 @@ describe('Babbler', function() {
 
   });
 
-  describe.skip ('tell', function () {
+  describe ('tell', function () {
     
     it('should tell a message', function(done) {
-      emma.listen('test')
-          .run(function (data) {
-            assert.equal(data, null);
+      emma.listen('test', function (response) {
+            assert.equal(response, 'test');
             done();
           });
 
       jack.tell('emma', 'test');
     });
 
-    it('should tell a message with data', function(done) {
-      emma.listen('test')
-          .run(function (data) {
-            assert.deepEqual(data, {a:2, b:3});
+    it.skip('should tell two messages subsequently', function(done) {
+      emma.listen('foo')
+          .listen(function (response) {
+            assert.deepEqual(response, 'bar');
             done();
           });
 
-      jack.tell('emma', 'test', {a:2, b:3});
+      jack.tell('emma', 'foo').tell('bar');
     });
 
   });
@@ -78,19 +77,21 @@ describe('Babbler', function() {
   describe ('ask', function () {
 
     it('should send a message and listen for a reply', function(done) {
-      emma.listen('add')
-          .tell(function (data) {
-            return data.a + data.b;
+      emma.listen('what is your name?')
+          .tell(function (message) {
+            return 'emma';
           });
 
-      jack.ask('emma', 'add', {a:2, b:3}, function (result) {
-            assert.equal(result, 5);
+      jack.ask('emma', 'what is your name?', function (result) {
+            assert.equal(result, 'emma');
             done();
           });
     });
 
     it ('should send a message, listen, and send a reply', function(done) {
-      emma.listen('count')
+      emma.listen('count', function () {
+            return 0;
+          })
           .tell(function (count) {
             return count + 1;
           })
@@ -99,19 +100,19 @@ describe('Babbler', function() {
             done();
           });
 
-      jack.ask('emma', 'count', 0)
+      jack.ask('emma', 'count')
           .tell(function (count) {
             return count + 2;
           });
     });
 
-    it ('should invoke the callback provided with listen', function(done) {
-      emma.listen('age', function (response) {
-        assert.equal(response, 32);
+    it ('should invoke the callback provided with listener', function(done) {
+      emma.listen('what is you age?', function (response) {
+        assert.equal(response, 'what is you age?');
         done();
       });
 
-      jack.tell('emma', 'age', 32);
+      jack.tell('emma', 'what is you age?');
     });
 
     it ('should invoke the callback provided with ask', function(done) {
@@ -126,22 +127,9 @@ describe('Babbler', function() {
       });
     });
 
-    it ('should invoke the callback provided with an ask with data', function(done) {
-      emma.listen('double')
-          .tell(function (value) {
-            return value * 2;
-          });
-
-      jack.ask('emma', 'double', 2, function (response) {
-        assert.equal(response, 4);
-        done();
-      });
-    });
-
     it('should make a decision during a conversation', function(done) {
       emma.listen('are you available?')
-          .tell(function (data) {
-            assert.strictEqual(data, undefined);
+          .tell(function (response) {
             return 'yes';
           });
 
@@ -184,7 +172,9 @@ describe('Babbler', function() {
     });
 
     it ('should keep state in the context during the conversation', function(done) {
-      emma.listen('question')
+      emma.listen('question', function () {
+            return 'a';
+          })
           .run(function (response, context) {
             context.a = 1;
             return response;
@@ -212,7 +202,7 @@ describe('Babbler', function() {
                 })
           });
 
-      jack.ask('emma', 'question', 'a')
+      jack.ask('emma', 'question')
           .run(function (response, context) {
             context.a = 1;
             return response;
