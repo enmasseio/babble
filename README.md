@@ -108,13 +108,14 @@ emma.listen('hi')
     });
 
 jack.tell('emma', 'hi')
-    .tell('my name is jack')
+    .tell(function (message, context) {
+      if (Math.random() > 0.5) {
+        return 'my name is jack'
+      } else {
+        return 'my age is 25';
+      }
+    })
     .listen(printMessage);
-
-jack.tell('emma', 'hi')
-    .tell('my age is 25')
-    .listen()
-    .run(printMessage);
 
 ```
 
