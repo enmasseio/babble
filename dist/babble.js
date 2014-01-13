@@ -8,7 +8,7 @@ var uuid = require('node-uuid'),
 
     Block = require('./block/Block'),
     Action = require('./block/Action'),
-    Reply = require('./block/Reply'),
+    Tell = require('./block/Tell'),
     Listen = require('./block/Listen');
 
 /**
@@ -71,30 +71,34 @@ Babbler.prototype.subscribe = function subscribe (pubsub, callback) {
   var me = this;
   var unsubscribe = pubsub.subscribe({
     id: this.id,
-    message: function (message) {
-      var conversation, trigger;
-      //console.log('message', me.id, message); // TODO: cleanup
+    message: function (envelope) {
+      var conversation,
+          trigger,
+          message = JSON.parse(envelope.message);
+
+      //console.log('message', me.id, envelope); // TODO: cleanup
+
       // check the open conversations
-      conversation = me.conversations[message.id];
+      conversation = me.conversations[envelope.id];
       if (conversation) {
-        me._run(conversation, message.message);
+        me._run(conversation, message);
       }
       else {
         // check the listeners to start a new conversation
-        trigger = me.listeners[message.message];
+        trigger = me.listeners[message];
         if (trigger) {
           //console.log('message create a new conversation', trigger, trigger.callback); // TODO: cleanup
           // create a new conversation
           conversation = {
-            id: message.id,
-            peer: message.from,
+            id: envelope.id,
+            peer: envelope.from,
             next: trigger,
             context: {
-              from: message.from
+              from: envelope.from
             }
           };
 
-          me._run(conversation, message.data);
+          me._run(conversation, message);
         }
       }
     },
@@ -155,40 +159,19 @@ Babbler.prototype.listen = function listen (message, callback) {
 };
 
 /**
- * Send a notification
+ * Send a message to the other peer
+ * Creates a block Tell, and runs the block immediately.
  * @param {String} id       Babbler id
- * @param {String} message
- * @param {JSON} [data]     Data must be serializable
+ * @param {Function | *} message
+ * @return {Block} block    Last block in the created control flow
  */
-Babbler.prototype.tell = function tell (id, message, data) {
-  this.publish(id, {
-    from: this.id,
-    to: id,
-    message: message,
-    data: data
-  });
-};
-
-/**
- * Send a question, listen for a response
- * @param {String} id             Babbler id
- * @param {String} message
- * @param {JSON} [data]           Data must be serializable
- * @param {Function} [callback]   Callback called
- * @return {Block} block          Start block for the control flow
- */
-Babbler.prototype.ask = function ask (id, message, data, callback) {
+Babbler.prototype.tell = function tell (id, message) {
   var cid = uuid.v4(); // create an id for this conversation
 
-  if (typeof data === 'function') {
-    callback = data;
-    data = undefined;
-  }
-
-  var block = new Listen(callback);
+  var block = new Tell();
 
   // create a new conversation
-  this.conversations[cid] = {
+  var conversation = {
     id: cid,
     peer: id,
     next: block,
@@ -197,25 +180,54 @@ Babbler.prototype.ask = function ask (id, message, data, callback) {
     }
   };
 
-  this.publish(id, {
-    id: cid,
-    from: this.id,
-    to: id,
-    message: message,
-    data: data
-  });
+  // override the `then` function, so we can immediately execute chained blocks
+  // until we encounter a Listen block.
+  var me = this;
+  block.then = function then (next) {
+    conversation.next = next;
+
+    if (next instanceof Listen) {
+      // add to the conversations queue
+      me.conversations[cid] = conversation;
+    }
+    else {
+      // execute immediately
+      message = me._run(conversation, message);
+      next.then = then;
+    }
+
+    return next;
+  };
+
+  // run the Tell block immediately
+  message = this._run(conversation, message);
 
   return block;
+};
+
+/**
+ * Send a question, listen for a response.
+ * Creates two blocks: Tell and Listen, and runs them immediately.
+ * @param {String} id             Babbler id
+ * @param {* | Function} message
+ * @param {Function} [callback]   Callback called
+ * @return {Block} block          Last block in the created control flow
+ */
+Babbler.prototype.ask = function ask (id, message, callback) {
+  return this
+      .tell(id, message)
+      .listen(callback);
 };
 
 /**
  * Run next block for given conversation
  * @param {Object} conversation
  * @param {*} [message]
+ * @return {*} message    Response returned by the last executed block
  * @private
  */
 Babbler.prototype._run = function _run (conversation, message) {
-  //console.log('_run', conversation, message); // TODO: cleanup
+  // console.log('_run', conversation, message); // TODO: cleanup
 
   // remove the conversation from the queue
   delete this.conversations[conversation.id];
@@ -224,19 +236,21 @@ Babbler.prototype._run = function _run (conversation, message) {
   do {
     //console.log('execute', block, message); // TODO: cleanup
     var next = block.execute(message, conversation.context);
+    message = next.result;
 
-    if (block instanceof Reply) {
+    // TODO: only select result as next message when !== undefined?
+
+    if (block instanceof Tell) {
       // send a response back to the other peer
       this.publish(conversation.peer, {
         id: conversation.id,
         from: this.id,
         to: conversation.peer,
-        message: next.result
+        message: JSON.stringify(message)
       });
     }
 
-    message = next.result;
-    block   = next.block;
+    block = next.block;
     //console.log('message', message); // TODO: cleanup
 
     if (block instanceof Listen) {
@@ -246,14 +260,16 @@ Babbler.prototype._run = function _run (conversation, message) {
     }
   }
   while (block && !(block instanceof Listen));
+
+  return message;
 };
 
 module.exports = Babbler;
 
-},{"./block/Action":4,"./block/Block":5,"./block/Listen":7,"./block/Reply":8,"./pubsub":9,"node-uuid":20}],3:[function(require,module,exports){
+},{"./block/Action":4,"./block/Block":5,"./block/Listen":7,"./block/Tell":8,"./pubsub":9,"node-uuid":20}],3:[function(require,module,exports){
 var Babbler = require('./Babbler'),
 
-    Reply = require('./block/Reply'),
+    Tell = require('./block/Tell'),
     Action = require('./block/Action'),
     Decision = require('./block/Decision');
 
@@ -267,17 +283,23 @@ exports.babbler = function babbler(id) {
 };
 
 /**
- * Create a control flow starting with a reply block
- * @param {Function} callback   Invoked as callback(message, context),
- *                              where `message` is the output from the previous
- *                              block in the chain, and `context` is an object
- *                              where state can be stored during a conversation.
- *                              The result returned by the function will be
- *                              send back to the sender.
- * @return {Reply} reply
+ * Create a control flow starting with a tell block
+ * @param {* | Function} [message] A static message or callback function
+ *                                 returning a message dynamically.
+ *                                 When `message` is a function, it will be
+ *                                 invoked as callback(message, context),
+ *                                 where `message` is the output from the
+ *                                 previous block in the chain, and `context` is
+ *                                 an object where state can be stored during a
+ *                                 conversation.
+ * @return {Tell} tell
  */
-exports.reply = function reply(callback) {
-  return new Reply(callback);
+exports.tell = function tell(message) {
+  var callback = (typeof message === 'function') ? message : function () {
+    return message;
+  };
+
+  return new Tell(callback);
 };
 
 /**
@@ -337,13 +359,13 @@ exports.block = {
   Action: require('./block/Action'),
   Decision: require('./block/Decision'),
   Listen: require('./block/Listen'),
-  Reply: require('./block/Reply')
+  Tell: require('./block/Tell')
 };
 
 // export pubsub interfaces
 exports.pubsub = require('./pubsub');
 
-},{"./Babbler":2,"./block/Action":4,"./block/Block":5,"./block/Decision":6,"./block/Listen":7,"./block/Reply":8,"./pubsub":9}],4:[function(require,module,exports){
+},{"./Babbler":2,"./block/Action":4,"./block/Block":5,"./block/Decision":6,"./block/Listen":7,"./block/Tell":8,"./pubsub":9}],4:[function(require,module,exports){
 var Block = require('./Block');
 
 /**
@@ -691,30 +713,35 @@ module.exports = Listen;
 var Block = require('./Block');
 
 /**
- * Reply
+ * Tell
  * Send a message to the other peer.
- * @param {Function} callback   Invoked as callback(message, context),
+ * @param {Function} [callback] Invoked as callback(message, context),
  *                              where `message` is the output from the previous
  *                              block in the chain, and `context` is an object
  *                              where state can be stored during a conversation.
  *                              The result returned by the function will be
  *                              send back to the sender.
+ *                              If no callback is provided, the block will send
+ *                              the output from previous block in the chain as
+ *                              message.
  * @constructor
  * @extends {Block}
  */
-function Reply (callback) {
-  if (!(this instanceof Reply)) {
+function Tell (callback) {
+  if (!(this instanceof Tell)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
 
-  if (!(typeof callback === 'function')) {
+  if (callback && !(typeof callback === 'function')) {
     throw new TypeError('Parameter callback must be a Function');
   }
 
-  this.callback = callback;
+  this.callback = callback || function (message) {
+    return message;
+  };
 }
 
-Reply.prototype = Object.create(Block.prototype);
+Tell.prototype = Object.create(Block.prototype);
 
 /**
  * Execute the block
@@ -722,7 +749,7 @@ Reply.prototype = Object.create(Block.prototype);
  * @param {Object} context
  * @return {{result: *, block: Block}} next
  */
-Reply.prototype.execute = function execute (message, context) {
+Tell.prototype.execute = function execute (message, context) {
   var result = this.callback(message, context);
 
   return {
@@ -732,23 +759,29 @@ Reply.prototype.execute = function execute (message, context) {
 };
 
 /**
- * Create a Reply block and chain it to the current block
+ * Create a Tell block and chain it to the current block
  * Returns the first block in the chain.
- * @param {Function} callback   Invoked as callback(message, context),
- *                              where `message` is the output from the previous
- *                              block in the chain, and `context` is an object
- *                              where state can be stored during a conversation.
- *                              The result returned by the function will be
- *                              send back to the sender.
+ * @param {* | Function} [message] A static message or callback function
+ *                                 returning a message dynamically.
+ *                                 When `message` is a function, it will be
+ *                                 invoked as callback(message, context),
+ *                                 where `message` is the output from the
+ *                                 previous block in the chain, and `context` is
+ *                                 an object where state can be stored during a
+ *                                 conversation.
  * @return {Block} first        First block in the chain
  */
-Block.prototype.reply = function reply (callback) {
-  var block = new Reply(callback);
+Block.prototype.tell = function tell (message) {
+  var callback = (typeof message === 'function') ? message : function () {
+    return message;
+  };
+
+  var block = new Tell(callback);
 
   return this.then(block);
 };
 
-module.exports = Reply;
+module.exports = Tell;
 
 },{"./Block":5}],9:[function(require,module,exports){
 // built-in pubsub interfaces
