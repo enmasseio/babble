@@ -144,32 +144,16 @@ function decideToAgree (response) {
   }
 }
 
-function yes() {
-  return 'yes';
-}
-
-function ok () {
-  return 'ok';
-}
-
-function no () {
-  return 'no';
-}
-
 emma.listen('do you have time today?')
     .decide(decideIfAvailable, {
-      yes: babble.tell(yes)
+      yes: babble.tell('yes')
               .listen()
               .decide(decideToAgree, {
-                ok: babble.tell(ok),
-                no: babble.tell(no)
+                ok: babble.tell('ok'),
+                no: babble.tell('no')
               }),
-      no: babble.tell(no)
+      no: babble.tell('no')
     });
-
-function askToMeet () {
-  return 'can we meet at 15:00?';
-}
 
 function noTime () {
   console.log('emma has no time');
@@ -189,7 +173,7 @@ function noAgreement () {
 
 jack.ask('emma', 'do you have time today?')
     .decide({
-      yes: babble.tell(askToMeet)
+      yes: babble.tell('can we meet at 15:00?')
               .listen()
               .decide(agreesToMeet, {
                 ok: babble.run(agreement),
@@ -197,6 +181,7 @@ jack.ask('emma', 'do you have time today?')
               }),
       no: babble.run(noTime)
     });
+
 ```
 
 
@@ -218,11 +203,12 @@ Babble has the following factory functions:
   `response`. Parameter `choices` is a map with the possible next blocks in the
   flow. The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
-- `babble.tell(callback: Function) : Block`
-  Create a flow starting with a Tell block. The provided callback function
+- `babble.tell(message: Function | *) : Block`
+  Create a flow starting with a Tell block. Message can be a static value,
+  or a callback function returning a message dynamically. The callback function
   is called as `callback(response, context)`, where `response` is the latest
-  received message, and must return a result. The returned result is send to the
-  connected peer.
+  received message, and must return a result.
+  The returned result is send to the connected peer.
 - `babble.then(block: Block) : Block`
   Create a flow starting with given block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
@@ -267,7 +253,7 @@ A babbler has the following functions:
   Listen for incoming messages. If there is a match, the returned control flow
   block will be executed. Other blocks can be chained to the returned block.
 
-- `tell(id: String, message: *)`
+- `tell(id: String, message: Function | *)`
   Send a notification to another peer.
 
 - `ask(id: String, message: String [, callback: Function]) : Block`

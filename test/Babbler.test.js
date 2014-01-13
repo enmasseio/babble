@@ -118,6 +118,16 @@ describe('Babbler', function() {
       });
     });
 
+    it ('should send an object as reply (2)', function(done) {
+      emma.listen('test')
+          .tell({a: 2, b: 3});
+
+      jack.ask('emma', 'test', function (response) {
+        assert.deepEqual(response, {a: 2, b: 3});
+        done();
+      });
+    });
+
     it ('should invoke the callback provided with listener', function(done) {
       emma.listen('what is you age?', function (response) {
         assert.equal(response, 'what is you age?');
