@@ -18,16 +18,20 @@
   });
 
   var jack = babble.babbler('jack').subscribe(pubnub, function () {
-    jack.tell('emma', 'tell age', 27);
-
-    jack.ask('emma', 'ask age')
-        .run(function (age, context) {
-          write(context.from + ' is ' + age + ' years old');
-        });
+    jack.tell('emma', 'hi')
+        .tell(function (message, context) {
+          if (Math.random() > 0.5) {
+            return 'my name is jack'
+          } else {
+            return 'my age is 25';
+          }
+        })
+        .listen(printMessage);
   });
 
-  function write (message) {
+  function printMessage (message) {
     document.getElementById('log').innerHTML += message + '<br>';
+    return message;
   }
 
 </script>

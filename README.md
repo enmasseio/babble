@@ -85,7 +85,7 @@ This scenario can be represented by the following control flow diagram:
 
 ![ask age](https://raw.github.com/josdejong/babble/master/img/say_hi.png)
 
-The scenario is programmed as:
+The scenario can be programmed as:
 
 ```js
 var babble = require('babble');
@@ -95,12 +95,12 @@ var emma = babble.babbler('emma').subscribe(),
 
 function printMessage (message, context) {
   console.log(context.from + ': ' + message);
+  return message;
 }
 
 emma.listen('hi')
-    .listen()
+    .listen(printMessage)
     .decide(function (message, context) {
-      printMessage(message, context);
       return (message.indexOf('age') != -1) ? 'age' : 'name';
     }, {
       'name': babble.tell('hi, my name is emma'),
@@ -116,7 +116,6 @@ jack.tell('emma', 'hi')
       }
     })
     .listen(printMessage);
-
 ```
 
 ### Plan a meeting

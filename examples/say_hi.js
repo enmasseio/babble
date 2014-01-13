@@ -3,14 +3,9 @@ var babble = require('../index');
 var emma = babble.babbler('emma').subscribe(),
     jack = babble.babbler('jack').subscribe();
 
-function printMessage (message, context) {
-  console.log(context.from + ': ' + message);
-}
-
 emma.listen('hi')
-    .listen()
+    .listen(printMessage)
     .decide(function (message, context) {
-      printMessage(message, context);
       return (message.indexOf('age') != -1) ? 'age' : 'name';
     }, {
       'name': babble.tell('hi, my name is emma'),
@@ -26,3 +21,8 @@ jack.tell('emma', 'hi')
       }
     })
     .listen(printMessage);
+
+function printMessage (message, context) {
+  console.log(context.from + ': ' + message);
+  return message;
+}
