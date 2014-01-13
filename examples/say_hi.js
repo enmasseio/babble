@@ -20,7 +20,8 @@ jack.tell('emma', 'hi')
         return 'my age is 25';
       }
     })
-    .listen(printMessage);
+    .listen()
+    .run(printMessage);
 
 function printMessage (message, context) {
   console.log(context.from + ': ' + message);

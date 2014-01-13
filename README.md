@@ -62,8 +62,8 @@ emma.listen('ask age')
     });
 
 jack.ask('emma', 'ask age', function (age, context) {
-      console.log(context.from + ' is ' + age + ' years old');
-    });
+  console.log(context.from + ' is ' + age + ' years old');
+});
 ```
 
 ## Control flow
@@ -115,7 +115,8 @@ jack.tell('emma', 'hi')
         return 'my age is 25';
       }
     })
-    .listen(printMessage);
+    .listen()
+    .run(printMessage);
 ```
 
 ### Plan a meeting
