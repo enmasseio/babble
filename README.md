@@ -318,3 +318,14 @@ To execute tests for the library, install the project dependencies once:
 Then, the tests can be executed:
 
     npm test
+
+
+# To-do
+
+- Change naming of publish/subscribe to send/receive.
+- Implement mixin pattern, enrich any object with babbler functionality.
+- Listen to patterns instead of a predefined message.
+- Implement error handling
+- Implement support for promises to allow async callback functions
+- Store message history in the context.
+- Implement conversations with multiple peers at the same time.
