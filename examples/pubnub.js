@@ -2,7 +2,7 @@ var babble = require('../index'),
     async = require('async');
 
 // initialize pubnub messaging
-var pubnub = babble.messaging.pubnub({
+var pubnub = babble.messagers.pubnub({
   publish_key: 'demo',    // REPLACE THIS WITH YOUR PUBNUB PUBLISH KEY
   subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
 });

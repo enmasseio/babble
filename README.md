@@ -237,15 +237,15 @@ instantiated via the above mentioned factory functions.
 A babbler is created via the factory function `babble.babbler(id: String)`.
 A babbler has the following functions:
 
-- `connect([messaging: Object] [, callback])`
+- `connect([messager: Object] [, callback])`
   Connect to a messaging system. Babble comes with interfaces to support various
   messaging systems: `pubnub`, `pubsub-js`, and `default`. These interfaces are
-  available in the `babble.messaging` namespace.  If parameter `messaging` is not
+  available in the `babble.messagers` namespace.  If parameter `messager` is not
   provided, babble uses the `default` messaging system, which works locally.
   A messaging system can be specified like:
 
   ```js
-  babbler.connect(babble.messaging['pubnub'], function () {
+  babbler.connect(babble.messagers['pubnub'], function () {
     // connected
   });
   ```
