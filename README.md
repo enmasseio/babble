@@ -10,8 +10,8 @@ and the blocks can dynamically determine the next block in the scenario.
 During a conversation, a context is available to store the state of the
 conversation.
 
-Babble uses pubsub to communicate between actors. It comes with built in
-support to communicate locally, and has as support for
+Babble uses customizable messaging to communicate between actors. It comes with
+built in support to communicate locally, and has as support for
 [pubnub](http://www.pubnub.com/) to connect actors distributed over multiple
 devices.
 
@@ -53,8 +53,8 @@ Then babble can be loaded and used:
 
 var babble = require('babble');
 
-var emma = babble.babbler('emma').subscribe(),
-    jack = babble.babbler('jack').subscribe();
+var emma = babble.babbler('emma').connect(),
+    jack = babble.babbler('jack').connect();
 
 emma.listen('ask age')
     .tell(function () {
@@ -90,8 +90,8 @@ The scenario can be programmed as:
 ```js
 var babble = require('babble');
 
-var emma = babble.babbler('emma').subscribe(),
-    jack = babble.babbler('jack').subscribe();
+var emma = babble.babbler('emma').connect(),
+    jack = babble.babbler('jack').connect();
 
 function printMessage (message, context) {
   console.log(context.from + ': ' + message);
@@ -135,8 +135,8 @@ control flow blocks are separated from the flow itself.
 ```js
 var babble = require('babble');
 
-var emma = babble.babbler('emma').subscribe(),
-    jack = babble.babbler('jack').subscribe();
+var emma = babble.babbler('emma').connect(),
+    jack = babble.babbler('jack').connect();
 
 function decideIfAvailable () {
   return (Math.random() > 0.4) ? 'yes' : 'no';
@@ -237,23 +237,23 @@ instantiated via the above mentioned factory functions.
 A babbler is created via the factory function `babble.babbler(id: String)`.
 A babbler has the following functions:
 
-- `subscribe([pubsub: Object] [, callback])`
-  Subscribe to a pubsub system. Babble comes with interfaces to support various
-  pubsub systems: `pubnub`, `pubsub-js`, and `default`. These interfaces are
-  available in the `babble.pubsub` namespace.  If parameter `pubsub` is not
-  provided, babble uses the `default` pubsub system, which works locally.
-  A pubsub system can be specified like:
+- `connect([messaging: Object] [, callback])`
+  Connect to a messaging system. Babble comes with interfaces to support various
+  messaging systems: `pubnub`, `pubsub-js`, and `default`. These interfaces are
+  available in the `babble.messaging` namespace.  If parameter `messaging` is not
+  provided, babble uses the `default` messaging system, which works locally.
+  A messaging system can be specified like:
 
   ```js
-  babbler.subscribe(babble.pubsub['pubnub'], function () {
+  babbler.connect(babble.messaging['pubnub'], function () {
     // connected
   });
   ```
 
-- `unsubscribe()`
-  Unsubscribe from the subscribed pubsub system.
+- `disconnect()`
+  Disconnect from the connected messaging system.
 
-- `publish(id: String, message: *)`
+- `send(id: String, message: *)`
   Send a message to another peer.
 
 - `listen(message: String [, callback: Function]) : Block`
