@@ -4,7 +4,7 @@ module.exports = _dereq_('./lib/babble');
 },{"./lib/babble":3}],2:[function(_dereq_,module,exports){
 var uuid = _dereq_('node-uuid'),
 
-    messagingInterfaces = _dereq_('./messaging'),
+    messagers = _dereq_('./messagers'),
 
     Block = _dereq_('./block/Block'),
     Action = _dereq_('./block/Action'),
@@ -32,7 +32,7 @@ function Babbler (id) {
 
 /**
  * Connect to a messaging system
- * @param {Object} [messaging]  A messaging interface. Must have the following
+ * @param {Object} [messager]  A messaging interface. Must have the following
  *                              functions:
  *                              - connect(params: {id: string,
  *                                message: function, connect: function}) : function
@@ -41,35 +41,35 @@ function Babbler (id) {
  *                              - send(id: string, message: *)
  *                                send a message
  *                              A number of interfaces is provided under
- *                              babble.messaging. Default interface is
- *                              babble.messaging['default']
+ *                              babble.messagers. Default interface is
+ *                              babble.messagers['default']
  * @param {Function} [callback] Called when subscription is completed. Called
  *                              without parameters
  * @return {Babbler} self
  */
-Babbler.prototype.connect = function connect (messaging, callback) {
-  if (typeof messaging === 'function') {
+Babbler.prototype.connect = function connect (messager, callback) {
+  if (typeof messager === 'function') {
     // function is called as connect(callback)
-    callback = messaging;
-    messaging = null;
+    callback = messager;
+    messager = null;
   }
 
-  if (!messaging) {
-    messaging = messagingInterfaces['default']();
+  if (!messager) {
+    messager = messagers['default']();
   }
 
-  if (typeof messaging.connect !== 'function') {
-    throw new Error('messaging must contain a function ' +
+  if (typeof messager.connect !== 'function') {
+    throw new Error('messager must contain a function ' +
         'connect(params: {id: string, callback: function}) : function');
   }
 
-  if (typeof messaging.send !== 'function') {
-    throw new Error('messaging must contain a function ' +
+  if (typeof messager.send !== 'function') {
+    throw new Error('messager must contain a function ' +
         'send(params: {id: string, message: *})');
   }
 
   var me = this;
-  var disconnect = messaging.connect({
+  var disconnect = messager.connect({
     id: this.id,
     message: function (envelope) {
       var conversation,
@@ -106,12 +106,12 @@ Babbler.prototype.connect = function connect (messaging, callback) {
   });
 
   if (typeof disconnect !== 'function') {
-    throw new Error('messaging.connect must return a function to disconnect');
+    throw new Error('messager.connect must return a function to disconnect');
   }
 
   // link functions to disconnect and send
   this.disconnect = disconnect;
-  this.send = messaging.send;
+  this.send = messager.send;
 
   return this;
 };
@@ -266,7 +266,7 @@ Babbler.prototype._run = function _run (conversation, message) {
 
 module.exports = Babbler;
 
-},{"./block/Action":4,"./block/Block":5,"./block/Listen":7,"./block/Tell":8,"./messaging":9,"node-uuid":19}],3:[function(_dereq_,module,exports){
+},{"./block/Action":4,"./block/Block":5,"./block/Listen":7,"./block/Tell":8,"./messagers":9,"node-uuid":19}],3:[function(_dereq_,module,exports){
 var Babbler = _dereq_('./Babbler'),
 
     Tell = _dereq_('./block/Tell'),
@@ -363,9 +363,9 @@ exports.block = {
 };
 
 // export messaging interfaces
-exports.messaging = _dereq_('./messaging');
+exports.messagers = _dereq_('./messagers');
 
-},{"./Babbler":2,"./block/Action":4,"./block/Block":5,"./block/Decision":6,"./block/Listen":7,"./block/Tell":8,"./messaging":9}],4:[function(_dereq_,module,exports){
+},{"./Babbler":2,"./block/Action":4,"./block/Block":5,"./block/Decision":6,"./block/Listen":7,"./block/Tell":8,"./messagers":9}],4:[function(_dereq_,module,exports){
 var Block = _dereq_('./Block');
 
 /**
