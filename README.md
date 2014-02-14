@@ -320,10 +320,9 @@ Then, the tests can be executed:
     npm test
 
 
-# To-do
+# To do
 
-- Change naming of publish/subscribe to send/receive.
-- Implement mixin pattern, enrich any object with babbler functionality.
+- Implement mixin pattern, enrich any object (like an actor) with babbler functionality.
 - Listen to patterns instead of a predefined message.
 - Implement error handling
 - Implement support for promises to allow async callback functions

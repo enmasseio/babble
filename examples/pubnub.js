@@ -1,8 +1,8 @@
 var babble = require('../index'),
     async = require('async');
 
-// initialize pubnub
-var pubnub = babble.pubsub.pubnub({
+// initialize pubnub messaging
+var pubnub = babble.messaging.pubnub({
   publish_key: 'demo',    // REPLACE THIS WITH YOUR PUBNUB PUBLISH KEY
   subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
 });
@@ -10,13 +10,13 @@ var pubnub = babble.pubsub.pubnub({
 // subscribing to pubsub works asynchronous
 async.parallel({
   emma: function (cb) {
-    var emma = babble.babbler('emma').subscribe(pubnub, function () {
+    var emma = babble.babbler('emma').connect(pubnub, function () {
       cb(null, emma);
     });
   },
 
   jack: function (cb) {
-    var jack = babble.babbler('jack').subscribe(pubnub, function () {
+    var jack = babble.babbler('jack').connect(pubnub, function () {
       cb(null, jack);
     });
   }

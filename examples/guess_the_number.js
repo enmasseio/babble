@@ -6,7 +6,7 @@ var MIN = 0,
 /* -------------------------------------------------------------------------- */
 
 (function () {
-  var emma = babble.babbler('emma').subscribe();
+  var emma = babble.babbler('emma').connect();
 
   function decideToPlay () {
     return (Math.random() > 0.2) ? 'start': 'deny';
@@ -67,7 +67,7 @@ var MIN = 0,
 /* -------------------------------------------------------------------------- */
 
 (function () {
-  var jack = babble.babbler('jack').subscribe();
+  var jack = babble.babbler('jack').connect();
 
   function decideToStart (response) {
     return (response == 'ok') ? 'start': 'cancel';

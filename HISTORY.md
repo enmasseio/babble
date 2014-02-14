@@ -2,6 +2,12 @@
 https://github.com/josdejong/babble
 
 
+## 2014-02-14, version 0.6.0
+
+- Renamed functions `publish`, `subscribe`, `unsubscribe` to `send`, `connect`,
+  and `disconnect`.
+
+
 ## 2014-01-13, version 0.5.0
 
 - Messages can now be of any type, not only string.

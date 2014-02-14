@@ -9,8 +9,8 @@ describe('Babbler', function() {
   var emma, jack;
 
   beforeEach(function () {
-    emma = new Babbler('emma').subscribe();
-    jack = new Babbler('jack').subscribe();
+    emma = new Babbler('emma').connect();
+    jack = new Babbler('jack').connect();
   });
 
   afterEach(function () {
@@ -18,17 +18,17 @@ describe('Babbler', function() {
     assert.equal(Object.keys(emma.conversations).length, 0);
     assert.equal(Object.keys(jack.conversations).length, 0);
 
-    emma.unsubscribe();
-    jack.unsubscribe();
+    emma.disconnect();
+    jack.disconnect();
 
     emma = null;
     jack = null;
   });
 
   it('should create and destroy a babbler', function() {
-    var susan = new Babbler('susan').subscribe();
+    var susan = new Babbler('susan').connect();
     assert.ok(susan instanceof Babbler);
-    susan.unsubscribe();
+    susan.disconnect();
   });
 
   it('should throw an error when creating a babbler with wrong syntax', function() {

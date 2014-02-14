@@ -12,12 +12,12 @@
 
 <script>
   // initialize pubnub
-  var pubnub = babble.pubsub.pubnub({
+  var pubnub = babble.messaging.pubnub({
     publish_key: 'demo',    // REPLACE THIS WITH YOUR PUBNUB PUBLISH KEY
     subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
   });
 
-  var emma = babble.babbler('emma').subscribe(pubnub, function () {
+  var emma = babble.babbler('emma').connect(pubnub, function () {
     emma.listen('hi')
         .listen(printMessage)
         .decide(function (message, context) {
