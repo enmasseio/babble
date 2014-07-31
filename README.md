@@ -210,6 +210,9 @@ Babble has the following factory functions:
   `response`. Parameter `choices` is a map with the possible next blocks in the
   flow. The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
+- `babble.listen([callback: Function])`  
+  Wait for a message. The provided callback function is called as 
+  `callback(response, context)`, where `response` is the just received message.
 - `babble.tell(message: Function | *) : Block`  
   Create a flow starting with a `Tell` block. Message can be a static value,
   or a callback function returning a message dynamically. The callback function
