@@ -4,7 +4,7 @@ Dynamic communication flows between message based actors.
 
 Babble makes it easy to code communication flows between actors. A conversation
 is modeled as a control flow diagram containing blocks `ask`, `tell`, `listen`,
-`decide`, and `run`. Each block can link to a next block in the
+`decide`, and `then`. Each block can link to a next block in the
 control flow. Conversations are dynamic: a scenario is build programmatically,
 and the blocks can dynamically determine the next block in the scenario.
 During a conversation, a context is available to store the state of the
@@ -116,7 +116,7 @@ jack.tell('emma', 'hi')
       }
     })
     .listen()
-    .run(printMessage);
+    .then(printMessage);
 ```
 
 ### Plan a meeting
@@ -183,10 +183,10 @@ jack.ask('emma', 'do you have time today?')
       yes: babble.tell('can we meet at 15:00?')
               .listen()
               .decide(agreesToMeet, {
-                ok: babble.run(agreement),
-                no: babble.run(noAgreement)
+                ok: babble.then(agreement),
+                no: babble.then(noAgreement)
               }),
-      no: babble.run(noTime)
+      no: babble.then(noTime)
     });
 
 ```
@@ -198,9 +198,6 @@ Babble has the following factory functions:
 
 - `babble.babbler(id: String) : Babbler`  
   Factory function to create a new Babbler.
-- `babble.run(callback: Function) : Block`  
-  Create a flow starting with an Action block. The provided callback function
-  is called as `callback(response, context)` and should not return a result.
 - `babble.decide([decision: Function, ] choices: Object<String, Block>) : Block`  
   Create a flow starting with a Decision block.
   When a `decision` function is provided, the function is invoked as
@@ -216,18 +213,19 @@ Babble has the following factory functions:
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result.
   The returned result is send to the connected peer.
-- `babble.then(block: Block) : Block`  
-  Create a flow starting with given block. The provided callback function
+- `babble.then(next: Block | function) : Block`  
+  Create a flow starting with given block. When a callback function is provided,
+  the function is wrapped into a `Then` block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
-  received message, and must return a result. The returned result is send to the
-  connected peer.
+  received message, and must return a result. The returned result is passed to 
+  the next block in the chain.
 
 Babble contains the following prototypes. These prototypes are normally
 instantiated via the above mentioned factory functions.
 
 - `babble.Babbler`
 - `babble.block.Block`
-- `babble.block.Action`
+- `babble.block.Then`
 - `babble.block.Decision`
 - `babble.block.Tell`
 - `babble.block.Start`
@@ -270,7 +268,7 @@ A babbler has the following functions:
 ### Block
 
 Blocks can be created via the factory functions available in `babble`
-(`tell`, `decide`, `run`, `then`, `listen`), or in a Babbler (`listen`, `tell`,
+(`tell`, `decide`, `then`, `listen`), or in a Babbler (`listen`, `tell`,
 `ask`). Blocks can be chained together, resulting in a control flow. The results
 returned by blocks are used as input argument for the next block in the chain.
 
@@ -285,12 +283,10 @@ A Block has the following functions:
 - `listen([callback: Function]) : Block`  
   Append a Listen block to the control flow. Returns the first block in the
   chain.
-- `run(callback: Function) : Block`  
-  Append an Action block to the control flow. Returns the first block in the
-  chain.
-- `then(block : Block) : Block`  
-  Append an arbitrary block to the control flow. Returns the first block in the
-  chain.
+- `then(block : Block | function) : Block`  
+  Append an arbitrary block to the control flow. When a callback function is
+  provided, it is wrapped into a `Then` block and added to the chain.
+  Returns the first block in the chain.
 
 
 ## Build

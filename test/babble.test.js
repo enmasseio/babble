@@ -4,7 +4,7 @@ var assert = require('assert'),
 
     Tell = require('../lib/block/Tell'),
     Decision = require('../lib/block/Decision'),
-    Action = require('../lib/block/Action');
+    Then = require('../lib/block/Then');
 
 describe('babbler', function() {
 
@@ -27,8 +27,8 @@ describe('babbler', function() {
     assert.ok(block instanceof Decision);
   });
 
-  it('should create a flow starting with an action block', function() {
-    var block = babble.run(function () {});
-    assert.ok(block instanceof Action);
+  it('should create a flow starting with a Then block', function() {
+    var block = babble.then(function () {});
+    assert.ok(block instanceof Then);
   });
 });

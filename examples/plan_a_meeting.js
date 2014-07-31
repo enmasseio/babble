@@ -48,8 +48,8 @@ jack.ask('emma', 'do you have time today?')
       yes: babble.tell('can we meet at 15:00?')
               .listen()
               .decide(agreesToMeet, {
-                ok: babble.run(agreement),
-                no: babble.run(noAgreement)
+                ok: babble.then(agreement),
+                no: babble.then(noAgreement)
               }),
-      no: babble.run(noTime)
+      no: babble.then(noTime)
     });

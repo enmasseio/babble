@@ -104,13 +104,13 @@ var MIN = 0,
   }
 
   var checkGuess = babble.decide(decideIfCorrect);
-  checkGuess.addChoice('right', babble.run(triumph));
+  checkGuess.addChoice('right', babble.then(triumph));
   checkGuess.addChoice('wrong', babble.tell(guess).listen().then(checkGuess));
 
   jack.ask('emma', 'lets play guess the number')
       .decide(decideToStart, {
-        start:  babble.run(start).tell(guess).listen().then(checkGuess),
-        cancel: babble.run(whine)
+        start:  babble.then(start).tell(guess).listen().then(checkGuess),
+        cancel: babble.then(whine)
       });
 
 })();

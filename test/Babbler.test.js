@@ -2,7 +2,7 @@ var assert = require('assert'),
     Babbler = require('../lib/Babbler'),
     Block = require('../lib/block/Block'),
     Tell = require('../lib/block/Tell'),
-    Action = require('../lib/block/Action'),
+    Then = require('../lib/block/Then'),
     Decision = require('../lib/block/Decision');
 
 describe('Babbler', function() {
@@ -81,7 +81,7 @@ describe('Babbler', function() {
           .tell('bye');
 
       jack.tell('emma', 'foo')
-          .run(function (response) {
+          .then(function (response) {
             assert.equal(response, 'foo');
             return 'bar';
           })
@@ -182,18 +182,18 @@ describe('Babbler', function() {
             assert.equal(response, 'yes');
             return response;
           }, {
-            yes: new Action(function (response) {
+            yes: new Then(function (response) {
               assert.equal(response, 'yes');
               done();
             })
           });
     });
 
-    it('should run action nodes', function(done) {
+    it('should run then blocks', function(done) {
       var logs = [];
 
       emma.listen('are you available?')
-          .run(function (response) {
+          .then(function (response) {
             logs.push('log 1');
           })
           .tell(function (response) {
@@ -206,7 +206,7 @@ describe('Babbler', function() {
             assert.equal(response, 'yes');
             logs.push('log 3');
           })
-          .run(function () {
+          .then(function () {
             logs.push('log 4');
 
             assert.deepEqual(logs, ['log 1', 'log 2', 'log 3', 'log 4']);
@@ -219,7 +219,7 @@ describe('Babbler', function() {
       emma.listen('question', function () {
             return 'a';
           })
-          .run(function (response, context) {
+          .then(function (response, context) {
             context.a = 1;
             return response;
           })
@@ -247,7 +247,7 @@ describe('Babbler', function() {
           });
 
       jack.ask('emma', 'question')
-          .run(function (response, context) {
+          .then(function (response, context) {
             context.a = 1;
             return response;
           })
