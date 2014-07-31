@@ -29,6 +29,11 @@ describe('babbler', function() {
     assert.ok(block.next instanceof Listen);
   });
 
+  it('should create a flow starting with listen', function() {
+    var block = babble.listen();
+    assert.ok(block instanceof Listen);
+  });
+
   it('should create a flow starting with a decision block', function() {
     var block = babble.decide(function () {}, {});
     assert.ok(block instanceof Decision);

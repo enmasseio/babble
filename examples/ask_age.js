@@ -8,6 +8,7 @@ emma.listen('what is your age?')
       return 25;
     });
 
-jack.ask('emma', 'what is your age?', function (age, context) {
-  console.log(context.from + ' is ' + age + ' years old');
-});
+jack.ask('emma', 'what is your age?')
+    .then(function (age, context) {
+      console.log(context.from + ' is ' + age + ' years old');
+    });
