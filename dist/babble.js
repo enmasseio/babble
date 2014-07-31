@@ -41,9 +41,11 @@ function Babbler (id) {
  * @param {Object} [messager]  A messaging interface. Must have the following
  *                              functions:
  *                              - connect(params: {id: string,
- *                                message: function, connect: function}) : function
- *                                must return a function which, when invoked,
- *                                disconnects again. parameter connect is optional.
+ *                                message: function, connect: function}) : string
+ *                                must return a token to disconnects again.
+ *                                parameter connect is optional.
+ *                              - disconnect(token: string)
+ *                                disconnect from a messager.
  *                              - send(id: string, message: *)
  *                                send a message
  *                              A number of interfaces is provided under
@@ -63,7 +65,12 @@ Babbler.prototype.connect = function (messager) {
 
   if (typeof messager.connect !== 'function') {
     throw new Error('messager must contain a function ' +
-        'connect(params: {id: string, callback: function}) : function');
+        'connect(params: {id: string, callback: function}) : string');
+  }
+
+  if (typeof messager.disconnect !== 'function') {
+    throw new Error('messager must contain a function ' +
+        'disconnect(token: string)');
   }
 
   if (typeof messager.send !== 'function') {
@@ -111,18 +118,16 @@ Babbler.prototype.connect = function (messager) {
     _resolve = resolve;
   });
 
-  var disconnect = messager.connect({
+  var token = messager.connect({
     id: this.id,
     message: onMessage,
     connect: _resolve
   });
 
-  if (typeof disconnect !== 'function') {
-    throw new Error('messager.connect must return a function to disconnect');
-  }
-
   // link functions to disconnect and send
-  me.disconnect = disconnect;
+  me.disconnect = function () {
+    messager.disconnect(token);
+  };
   me.send = messager.send;
 
   return connected;
@@ -226,6 +231,20 @@ Babbler.prototype.tell = function (id, message) {
 
   return block;
 };
+
+/**
+ * Create a control flow starting with a Then block
+ * @param {Function} callback   Invoked as callback(message, context),
+ *                              where `message` is the output from the previous
+ *                              block in the chain, and `context` is an object
+ *                              where state can be stored during a conversation.
+ * @return {Then} then
+ */
+/* TODO: implement Babbler.then
+Babbler.prototype.then = function (callback) {
+
+};
+*/
 
 /**
  * Send a question, listen for a response.
@@ -761,6 +780,25 @@ Block.prototype.tell = function (message) {
   return this.then(block);
 };
 
+/**
+ * Send a question, listen for a response.
+ * Creates two blocks: Tell and Listen.
+ * This is equivalent of doing `babble.tell(message).listen(callback)`
+ * @param {* | Function} message
+ * @param {Function} [callback] Invoked as callback(message, context),
+ *                              where `message` is the just received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. This is equivalent
+ *                              of doing `listen().then(callback)`
+ * @return {Block} block        Last block in the created control flow
+ */
+Block.prototype.ask = function (message, callback) {
+  // FIXME: this doesn't work
+  return this
+      .tell(message)
+      .listen(callback);
+};
+
 module.exports = Tell;
 
 },{"./Block":4}],8:[function(require,module,exports){
@@ -858,7 +896,7 @@ module.exports = Then;
 
 /**
  * pubsub-js messaging interface
- * @returns {{connect: function, send: function}}
+ * @returns {{connect: function, disconnect: function, send: function}}
  */
 exports['pubsub-js'] = function () {
   var PubSub = require('pubsub-js');
@@ -873,10 +911,13 @@ exports['pubsub-js'] = function () {
         params.connect();
       }
 
-      return function () {
-        PubSub.unsubscribe(token);
-      };
+      return token;
     },
+
+    disconnect: function(token) {
+      PubSub.unsubscribe(token);
+    },
+
     send: function (id, message) {
       PubSub.publish(id, message);
     }
@@ -886,7 +927,7 @@ exports['pubsub-js'] = function () {
 /**
  * // pubnub messaging interface
  * @param {{publish_key: string, subscribe_key: string}} params
- * @returns {{connect: function, send: function}}
+ * @returns {{connect: function, disconnect: function, send: function}}
  */
 exports['pubnub'] = function (params) {
   var PUBNUB;
@@ -912,10 +953,13 @@ exports['pubnub'] = function (params) {
         connect: params.connect
       });
 
-      return function () {
-        pubnub.unsubscribe(params.id);
-      }
+      return params.id;
     },
+
+    disconnect: function (id) {
+      pubnub.unsubscribe(id);
+    },
+
     send: function (id, message) {
       pubnub.publish({
         channel: id,

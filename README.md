@@ -286,6 +286,10 @@ returned by blocks are used as input argument for the next block in the chain.
 
 A `Block` has the following functions:
 
+- `ask(message: * [, callback]) : Block`  
+  Append a `Tell` and `Listen` block to the control flow. 
+  Parameter `message` can be a callback function or an object or value. 
+  Returns the first block in the chain.
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`  
   Append a `Decision` block to the control flow. Returns the first block in the
   chain.

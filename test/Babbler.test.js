@@ -176,6 +176,20 @@ describe('Babbler', function() {
       });
     });
 
+    it('should invoke an ask in a chain', function(done) {
+      emma.listen('hi')
+          .ask('what is your age?', function (response) {
+            assert.equal(response, 32);
+            setTimeout(done, 0);
+          });
+
+      jack.tell('emma', 'hi')
+          .listen(function (response) {
+            assert.equal(response, 'what is your age?');
+          })
+          .tell(32);
+    });
+
     it('should make a decision during a conversation', function(done) {
       emma.listen('are you available?')
           .tell(function (response) {
