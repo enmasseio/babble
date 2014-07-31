@@ -1,7 +1,11 @@
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.babble=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+'use strict';
+
 module.exports = require('./lib/babble');
 
 },{"./lib/babble":3}],2:[function(require,module,exports){
+'use strict';
+
 var uuid = require('node-uuid');
 var Promise = require('es6-promise').Promise;
 
@@ -148,7 +152,8 @@ Babbler.prototype.send = function (id, message) {
  * @param {Function} [callback] Invoked as callback(message, context),
  *                              where `message` is the just received message,
  *                              and `context` is an object where state can be
- *                              stored during a conversation.
+ *                              stored during a conversation. This is equivalent
+ *                              of doing `listen().then(callback)`
  * @return {Block} block        Start block of a control flow.
  */
 // TODO: remove callback from listen
@@ -225,10 +230,15 @@ Babbler.prototype.tell = function (id, message) {
 /**
  * Send a question, listen for a response.
  * Creates two blocks: Tell and Listen, and runs them immediately.
+ * This is equivalent of doing `Babbler.tell(id, message).listen(callback)`
  * @param {String} id             Babbler id
  * @param {* | Function} message
- * @param {Function} [callback]   Callback called
- * @return {Block} block          Last block in the created control flow
+ * @param {Function} [callback] Invoked as callback(message, context),
+ *                              where `message` is the just received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. This is equivalent
+ *                              of doing `listen().then(callback)`
+ * @return {Block} block        Last block in the created control flow
  */
 Babbler.prototype.ask = function (id, message, callback) {
   return this
@@ -284,9 +294,12 @@ Babbler.prototype._run = function (conversation, message) {
 module.exports = Babbler;
 
 },{"./block/Block":4,"./block/Listen":6,"./block/Tell":7,"./block/Then":8,"./messagers":9,"es6-promise":30,"node-uuid":40}],3:[function(require,module,exports){
+'use strict';
+
 var Babbler = require('./Babbler');
 
 var Tell = require('./block/Tell');
+var Listen = require('./block/Listen');
 var Then = require('./block/Then');
 var Decision = require('./block/Decision');
 
@@ -317,6 +330,24 @@ exports.tell = function (message) {
   };
 
   return new Tell(callback);
+};
+
+/**
+ * Send a question, listen for a response.
+ * Creates two blocks: Tell and Listen.
+ * This is equivalent of doing `babble.tell(message).listen(callback)`
+ * @param {* | Function} message
+ * @param {Function} [callback] Invoked as callback(message, context),
+ *                              where `message` is the just received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. This is equivalent
+ *                              of doing `listen().then(callback)`
+ * @return {Block} block        Last block in the created control flow
+ */
+exports.ask = function (message, callback) {
+  return exports
+      .tell(message)
+      .listen(callback);
 };
 
 /**
@@ -356,6 +387,19 @@ exports.decide = function (arg1, arg2) {
 };
 
 /**
+ * Listen for a message
+ * @param {Function} [callback] Invoked as callback(message, context),
+ *                              where `message` is the just received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. This is equivalent
+ *                              of doing `listen().then(callback)`
+ * @return {Block}              Returns the created Listen block
+ */
+exports.listen = function(callback) {
+  return new Listen(callback);
+};
+
+/**
  * Create a control flow starting with a Then block
  * @param {Function} callback   Invoked as callback(message, context),
  *                              where `message` is the output from the previous
@@ -383,6 +427,8 @@ exports.block = {
 exports.messagers = require('./messagers');
 
 },{"./Babbler":2,"./block/Block":4,"./block/Decision":5,"./block/Listen":6,"./block/Tell":7,"./block/Then":8,"./messagers":9}],4:[function(require,module,exports){
+'use strict';
+
 /**
  * Abstract control flow diagram block
  * @constructor
@@ -405,6 +451,8 @@ Block.prototype.execute = function (message, context) {
 module.exports = Block;
 
 },{}],5:[function(require,module,exports){
+'use strict';
+
 var Block = require('./Block');
 
 /**
@@ -575,6 +623,8 @@ Block.prototype.decide = function (arg1, arg2) {
 module.exports = Decision;
 
 },{"./Block":4}],6:[function(require,module,exports){
+'use strict';
+
 var Block = require('./Block');
 
 /**
@@ -638,6 +688,8 @@ Block.prototype.listen = function (callback) {
 module.exports = Listen;
 
 },{"./Block":4}],7:[function(require,module,exports){
+'use strict';
+
 var Block = require('./Block');
 
 /**
@@ -712,6 +764,8 @@ Block.prototype.tell = function (message) {
 module.exports = Tell;
 
 },{"./Block":4}],8:[function(require,module,exports){
+'use strict';
+
 var Block = require('./Block');
 
 /**
@@ -798,6 +852,8 @@ Block.prototype.then = function (next) {
 module.exports = Then;
 
 },{"./Block":4}],9:[function(require,module,exports){
+'use strict';
+
 // built-in messaging interfaces
 
 /**

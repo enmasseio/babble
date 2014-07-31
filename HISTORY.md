@@ -11,6 +11,8 @@ https://github.com/enmasseio/babble
 - Changed function `Babbler.connect` to return a Promise instead of accepting
   a callback function as last parameter.
 - Added support for `babble.ask`.
+- Changed the API for messagers: `connect` must return a token, and a messager
+  must contain a function `disconnect(token)`.
 
 
 ## 2014-01-13, version 0.5.0
