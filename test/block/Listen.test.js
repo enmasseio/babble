@@ -1,5 +1,5 @@
-var assert = require('assert'),
-    Listen = require('../../lib/block/Listen');
+var assert = require('assert');
+var Listen = require('../../lib/block/Listen');
 
 describe('Listen', function() {
 

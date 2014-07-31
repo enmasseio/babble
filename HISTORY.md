@@ -4,8 +4,12 @@ https://github.com/enmasseio/babble
 
 ## 2014-02-14, version 0.6.0
 
+- On creation, a babbler is now automatically connected to the default (local) 
+  message bus.
 - Renamed functions `publish`, `subscribe`, `unsubscribe` to `send`, `connect`,
   and `disconnect`. Renamed namespace `pubsub` to `messengers`.
+- Changed function `Babbler.connect` to return a Promise instead of accepting
+  a callback function as last parameter.
 
 
 ## 2014-01-13, version 0.5.0

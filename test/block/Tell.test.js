@@ -1,5 +1,5 @@
-var assert = require('assert'),
-    Tell = require('../../lib/block/Tell');
+var assert = require('assert');
+var Tell = require('../../lib/block/Tell');
 
 describe('Tell', function() {
 

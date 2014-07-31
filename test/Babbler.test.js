@@ -1,16 +1,19 @@
-var assert = require('assert'),
-    Babbler = require('../lib/Babbler'),
-    Block = require('../lib/block/Block'),
-    Tell = require('../lib/block/Tell'),
-    Then = require('../lib/block/Then'),
-    Decision = require('../lib/block/Decision');
+var assert = require('assert');
+var Babbler = require('../lib/Babbler');
+var Block = require('../lib/block/Block');
+var Tell = require('../lib/block/Tell');
+var Then = require('../lib/block/Then');
+var Decision = require('../lib/block/Decision');
 
 describe('Babbler', function() {
   var emma, jack;
 
   beforeEach(function () {
-    emma = new Babbler('emma').connect();
-    jack = new Babbler('jack').connect();
+    emma = new Babbler('emma');
+    jack = new Babbler('jack');
+
+    emma.connect();
+    jack.connect();
   });
 
   afterEach(function () {
@@ -26,9 +29,11 @@ describe('Babbler', function() {
   });
 
   it('should create and destroy a babbler', function() {
-    var susan = new Babbler('susan').connect();
-    assert.ok(susan instanceof Babbler);
-    susan.disconnect();
+    new Babbler('susan').connect()
+        .then(function (susan) {
+          assert.ok(susan instanceof Babbler);
+          susan.disconnect();
+        });
   });
 
   it('should throw an error when creating a babbler with wrong syntax', function() {

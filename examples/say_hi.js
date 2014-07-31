@@ -1,7 +1,7 @@
 var babble = require('../index');
 
-var emma = babble.babbler('emma').connect(),
-    jack = babble.babbler('jack').connect();
+var emma = babble.babbler('emma');
+var jack = babble.babbler('jack');
 
 emma.listen('hi')
     .listen()

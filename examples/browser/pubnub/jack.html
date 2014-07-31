@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>babble in the browser using pubnub</title>
+  <title>jack | babble in the browser using pubnub</title>
   <script src="http://cdnjs.cloudflare.com/ajax/libs/pubnub/3.5.4/pubnub.min.js"></script>
   <script src="../../../dist/babble.js"></script>
 </head>
@@ -17,17 +17,19 @@
     subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
   });
 
-  var jack = babble.babbler('jack').connect(pubnub, function () {
-    jack.tell('emma', 'hi')
-        .tell(function (message, context) {
-          if (Math.random() > 0.5) {
-            return 'my name is jack'
-          } else {
-            return 'my age is 25';
-          }
-        })
-        .listen(printMessage);
-  });
+  babble.babbler('jack')
+      .connect(pubnub)
+      .then(function (jack) {
+        jack.tell('emma', 'hi')
+            .tell(function (message, context) {
+              if (Math.random() > 0.5) {
+                return 'my name is jack'
+              } else {
+                return 'my age is 25';
+              }
+            })
+            .listen(printMessage);
+      });
 
   function printMessage (message) {
     document.getElementById('log').innerHTML += message + '<br>';

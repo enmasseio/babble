@@ -1,12 +1,12 @@
 var babble = require('../index');
 
-var MIN = 0,
-    MAX = 50;
+var MIN = 0;
+var MAX = 50;
 
 /* -------------------------------------------------------------------------- */
 
 (function () {
-  var emma = babble.babbler('emma').connect();
+  var emma = babble.babbler('emma');
 
   function decideToPlay () {
     return (Math.random() > 0.2) ? 'start': 'deny';
@@ -67,7 +67,7 @@ var MIN = 0,
 /* -------------------------------------------------------------------------- */
 
 (function () {
-  var jack = babble.babbler('jack').connect();
+  var jack = babble.babbler('jack');
 
   function decideToStart (response) {
     return (response == 'ok') ? 'start': 'cancel';

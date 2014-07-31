@@ -1,5 +1,5 @@
-var assert = require('assert'),
-    Then = require('../../lib/block/Then');
+var assert = require('assert');
+var Then = require('../../lib/block/Then');
 
 describe('Then', function() {
 

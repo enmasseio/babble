@@ -13,9 +13,10 @@
     "url": "git://github.com/josdejong/babble.git"
   },
   "dependencies": {
-    "pubsub-js": "~1.4.0",
-    "pubnub": "~3.5.48",
-    "node-uuid": "~1.4.1"
+    "es6-promise": "^1.0.0",
+    "node-uuid": "~1.4.1",
+    "pubnub": "~3.6.7",
+    "pubsub-js": "~1.4.0"
   },
   "devDependencies": {
     "mocha": "latest",

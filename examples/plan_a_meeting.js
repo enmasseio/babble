@@ -1,7 +1,7 @@
 var babble = require('../index');
 
-var emma = babble.babbler('emma').connect(),
-    jack = babble.babbler('jack').connect();
+var emma = babble.babbler('emma');
+var jack = babble.babbler('jack');
 
 function decideIfAvailable () {
   return (Math.random() > 0.4) ? 'yes' : 'no';

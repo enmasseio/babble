@@ -1,5 +1,5 @@
-var assert = require('assert'),
-    Block = require('../../lib/block/Block');
+var assert = require('assert');
+var Block = require('../../lib/block/Block');
 
 describe('Block', function() {
 

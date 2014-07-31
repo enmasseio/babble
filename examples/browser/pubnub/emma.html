@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>babble in the browser using pubnub</title>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/pubnub/3.5.4/pubnub.min.js"></script>
+  <title>emma | babble in the browser using pubnub</title>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/pubnub/3.6.3/pubnub.min.js"></script>
   <script src="../../../dist/babble.js"></script>
 </head>
 <body>
@@ -17,16 +17,18 @@
     subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
   });
 
-  var emma = babble.babbler('emma').connect(pubnub, function () {
-    emma.listen('hi')
-        .listen(printMessage)
-        .decide(function (message, context) {
-          return (message.indexOf('age') != -1) ? 'age' : 'name';
-        }, {
-          'name': babble.tell('hi, my name is emma'),
-          'age':  babble.tell('hi, my age is 27')
-        });
-  });
+  babble.babbler('emma')
+      .connect(pubnub)
+      .then(function (emma) {
+        emma.listen('hi')
+            .listen(printMessage)
+            .decide(function (message, context) {
+              return (message.indexOf('age') != -1) ? 'age' : 'name';
+            }, {
+              'name': babble.tell('hi, my name is emma'),
+              'age':  babble.tell('hi, my age is 27')
+            });
+      });
 
   function printMessage (message) {
     document.getElementById('log').innerHTML += message + '<br>';

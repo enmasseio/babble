@@ -1,10 +1,10 @@
-var assert = require('assert'),
-    babble = require('../index'),
-    Babbler = require('../lib/Babbler'),
+var assert = require('assert');
+var babble = require('../index');
+var Babbler = require('../lib/Babbler');
 
-    Tell = require('../lib/block/Tell'),
-    Decision = require('../lib/block/Decision'),
-    Then = require('../lib/block/Then');
+var Tell = require('../lib/block/Tell');
+var Decision = require('../lib/block/Decision');
+var Then = require('../lib/block/Then');
 
 describe('babbler', function() {
 

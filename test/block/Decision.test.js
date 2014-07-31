@@ -1,6 +1,6 @@
-var assert = require('assert'),
-    Block = require('../../lib/block/Block'),
-    Decision = require('../../lib/block/Decision');
+var assert = require('assert');
+var Block = require('../../lib/block/Block');
+var Decision = require('../../lib/block/Decision');
 
 describe('Decision', function() {
 
