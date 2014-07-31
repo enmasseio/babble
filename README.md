@@ -196,6 +196,9 @@ jack.ask('emma', 'do you have time today?')
 
 Babble has the following factory functions:
 
+- `babble.ask(message: String [, callback: Function]) : Block`  
+  Send a question and listen for a reply. 
+  This is equivalent of doing `tell(message).listen([callback])`.
 - `babble.babbler(id: String) : Babbler`  
   Factory function to create a new Babbler.
 - `babble.decide([decision: Function, ] choices: Object<String, Block>) : Block`  
@@ -225,10 +228,10 @@ instantiated via the above mentioned factory functions.
 
 - `babble.Babbler`
 - `babble.block.Block`
-- `babble.block.Then`
 - `babble.block.Decision`
+- `babble.block.Listen`
 - `babble.block.Tell`
-- `babble.block.Start`
+- `babble.block.Then`
 
 ### Babbler
 
@@ -238,6 +241,11 @@ message bus. The connection can replaced with another message bus using the
 function `Babbler.connect(messager)`.
 
 A babbler has the following functions:
+
+- `ask(id: String, message: String [, callback: Function]) : Block`  
+  Send a question to another peer and listen for a reply. 
+  This is equivalent of doing `tell(id, message).listen([callback])`.
+  Other blocks can be chained to the returned block.
 
 - `connect([messager: Object]) : Promise.<Babbler>`  
   Connect to a messaging system. Babble comes with interfaces to support various
@@ -259,19 +267,15 @@ A babbler has the following functions:
 - `disconnect()`  
   Disconnect from the connected messaging system.
 
-- `send(id: String, message: *)`  
-  Send a message to another peer.
-
 - `listen(message: String [, callback: Function]) : Block`  
   Listen for incoming messages. If there is a match, the returned control flow
   block will be executed. Other blocks can be chained to the returned block.
 
+- `send(id: String, message: *)`  
+  Send a message to another peer.
+
 - `tell(id: String, message: Function | *)`  
   Send a notification to another peer.
-
-- `ask(id: String, message: String [, callback: Function]) : Block`  
-  Send a question to another peer. Other blocks can be chained to the returned
-  block.
 
 ### Block
 

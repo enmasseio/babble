@@ -10,6 +10,7 @@ https://github.com/enmasseio/babble
   and `disconnect`. Renamed namespace `pubsub` to `messengers`.
 - Changed function `Babbler.connect` to return a Promise instead of accepting
   a callback function as last parameter.
+- Added support for `babble.ask`.
 
 
 ## 2014-01-13, version 0.5.0
