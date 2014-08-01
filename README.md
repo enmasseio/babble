@@ -338,8 +338,9 @@ Then, the tests can be executed:
 # To do
 
 - Implement mixin pattern, enrich any object (like an actor) with babbler functionality.
-- Implement an `If` block which can test a function, regexp, or 'string', and continue
+- Implement an `if` function which can test a function, regexp, or 'string', and continue
   with one block when condition is met or another block when not matched.
+- Implement a `filter` function, which only continues a chain when a condition is met. 
 - Implement error handling.
 - Implement support for returning promises from callbacks, to allow async callback functions.
 - Store message history in the context.
