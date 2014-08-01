@@ -38,19 +38,18 @@ function Babbler (id) {
 
 /**
  * Connect to a messaging system
- * @param {Object} [messager]  A messaging interface. Must have the following
- *                              functions:
- *                              - connect(params: {id: string,
- *                                message: function, connect: function}) : string
- *                                must return a token to disconnects again.
- *                                parameter connect is optional.
- *                              - disconnect(token: string)
- *                                disconnect from a messager.
- *                              - send(id: string, message: *)
- *                                send a message
- *                              A number of interfaces is provided under
- *                              babble.messagers. Default interface is
- *                              babble.messagers['default']
+ * @param {{connect: function, disconnect: function, send: function}} [messager]
+ *          A messaging interface. Must have the following functions:
+ *          - connect(params: {id: string,
+ *            message: function, connect: function}) : string
+ *            must return a token to disconnects again.
+ *            parameter connect is optional.
+ *          - disconnect(token: string)
+ *            disconnect from a messager.
+ *          - send(id: string, message: *)
+ *            send a message
+ *          A number of interfaces is provided under babble.messagers.
+ *          Default interface is babble.messagers['default']
  * @return {Promise.<Babbler>}  Returns a Promise which resolves when the
  *                              babbler is connected.
  */
@@ -58,61 +57,27 @@ Babbler.prototype.connect = function (messager) {
   // disconnect (in case we are already connected)
   this.disconnect();
 
-  var me = this;
   if (!messager) {
     messager = messagers['default']();
   }
 
+  // validate the messagers fucntions
   if (typeof messager.connect !== 'function') {
     throw new Error('messager must contain a function ' +
         'connect(params: {id: string, callback: function}) : string');
   }
-
   if (typeof messager.disconnect !== 'function') {
     throw new Error('messager must contain a function ' +
         'disconnect(token: string)');
   }
-
   if (typeof messager.send !== 'function') {
     throw new Error('messager must contain a function ' +
         'send(params: {id: string, message: *})');
   }
 
-  var onMessage = function (envelope) {
-    var conversation,
-        trigger,
-        message = JSON.parse(envelope.message);
-
-    //console.log('message', me.id, envelope); // TODO: cleanup
-
-    // check the open conversations
-    conversation = me.conversations[envelope.id];
-    if (conversation) {
-      me._run(conversation, message);
-    }
-    else {
-      // check the listeners to start a new conversation
-      trigger = me.listeners[message];
-      if (trigger) {
-        //console.log('message create a new conversation', trigger, trigger.callback); // TODO: cleanup
-        // create a new conversation
-        conversation = {
-          id: envelope.id,
-          peer: envelope.from,
-          next: trigger,
-          context: {
-            from: envelope.from
-          }
-        };
-
-        me._run(conversation, message);
-      }
-    }
-  };
-
   // we return a promise, but we run the message.connect function immediately
   // (outside of the Promise), so that synchronous connects are done without
-  // the need to await the promise to resolve.
+  // the need to await the promise to resolve on the next tick.
   var _resolve;
   var connected = new Promise(function (resolve, reject) {
     _resolve = resolve;
@@ -120,17 +85,61 @@ Babbler.prototype.connect = function (messager) {
 
   var token = messager.connect({
     id: this.id,
-    message: onMessage,
+    message: this._onMessage.bind(this),
     connect: _resolve
   });
 
   // link functions to disconnect and send
-  me.disconnect = function () {
+  this.disconnect = function () {
     messager.disconnect(token);
   };
-  me.send = messager.send;
+  this.send = messager.send;
 
+  // return a promise
   return connected;
+};
+
+/**
+ * Handle an incoming message
+ * @param {{id: string, from: string, to: string, message: string}} envelope
+ * @returns {boolean} Returns true when a message has been handled, else returns
+ *                    false
+ * @private
+ */
+Babbler.prototype._onMessage = function (envelope) {
+  var conversation;
+  var trigger;
+  var message = envelope.message;
+
+  //console.log('message', this.id, envelope); // TODO: cleanup
+
+  // check the open conversations
+  conversation = this.conversations[envelope.id];
+  if (conversation) {
+    this._run(conversation, message);
+    return true;
+  }
+  else {
+    // check the listeners to start a new conversation
+    trigger = this.listeners[message];
+    if (trigger) {
+      //console.log('message create a new conversation', trigger, trigger.callback); // TODO: cleanup
+      // create a new conversation
+      conversation = {
+        id: envelope.id,
+        peer: envelope.from,
+        next: trigger,
+        context: {
+          from: envelope.from
+        }
+      };
+
+      this._run(conversation, message);
+      return true;
+    }
+  }
+
+  return false;
 };
 
 /**
@@ -280,11 +289,16 @@ Babbler.prototype._run = function (conversation, message) {
 
   var block = conversation.next;
   do {
-    //console.log('execute', block, message); // TODO: cleanup
     var next = block.execute(message, conversation.context);
     message = next.result;
 
-    // TODO: only select result as next message when !== undefined?
+    if (block.next instanceof Listen) {
+      // wait for a next incoming message
+      // Note: we add this listener *before* we send a message,
+      // this is needed in case the reply is send synchronously
+      conversation.next = block.next;
+      this.conversations[conversation.id] = conversation;
+    }
 
     if (block instanceof Tell) {
       // send a response back to the other peer
@@ -292,18 +306,11 @@ Babbler.prototype._run = function (conversation, message) {
         id: conversation.id,
         from: this.id,
         to: conversation.peer,
-        message: JSON.stringify(message)
+        message: message
       });
     }
 
     block = next.block;
-    //console.log('message', message); // TODO: cleanup
-
-    if (block instanceof Listen) {
-      // wait for a next incoming message
-      conversation.next = block;
-      this.conversations[conversation.id] = conversation;
-    }
   }
   while (block && !(block instanceof Listen));
 
@@ -444,6 +451,114 @@ exports.block = {
 
 // export messaging interfaces
 exports.messagers = require('./messagers');
+
+/**
+ * Babblify an actor. The babblified actor will be extended with functions
+ * `ask`, `tell`, and `listen`.
+ *
+ * Babble expects that messages sent via `actor.send(to, message)` will be
+ * delivered by the recipient on a function `actor.onMessage(from, message)`.
+ * Babble replaces the original `onMessage` with a new one, which is used to
+ * listen for all incoming messages. Messages ignored by babble are propagated
+ * to the original `onMessage` function.
+ *
+ * The actor can be restored in its original state using `unbabblify(actor)`.
+ *
+ * @param {Object} actor      The actor to be babblified. Must be an object
+ *                            containing functions `send(to, message)` and
+ *                            `onMessage(from, message)`.
+ * @param {Object} [params]   Optional parameters. Can contain properties:
+ *                            - id: string        The id for the babbler
+ *                            - send: string      The name of an alternative
+ *                                                send function available on
+ *                                                the actor.
+ *                            - onMessage: string The name of an alternative
+ *                                                onMessage function available
+ *                                                on the actor.
+ * @returns {Object}          Returns the babblified actor.
+ */
+exports.babblify = function (actor, params) {
+  var babblerId;
+  if (params && params.id !== undefined) {
+    babblerId = params.id;
+  }
+  else if (actor.id !== undefined) {
+    babblerId = actor.id
+  }
+  else {
+    throw new Error('Id missing. Ensure that either actor has a property "id", ' +
+        'or provide an id as a property in second argument params')
+  }
+
+  // validate actor
+  ['ask', 'tell', 'listen'].forEach(function (prop) {
+    if (actor[prop] !== undefined) {
+      throw new Error('Conflict: actor already has a property "' + prop + '"');
+    }
+  });
+
+  var sendName = params && params.send || 'send';
+  if (typeof actor[sendName] !== 'function') {
+    throw new Error('Missing function. ' +
+        'Function "' + sendName + '(to, message)" expected on actor or on params');
+  }
+
+  // create a new babbler
+  var babbler = exports.babbler(babblerId);
+
+  // attach onMessage function to the babbler
+  var onMessageName = params && params.onMessage || 'onMessage';
+  var onMessageOriginal = actor.hasOwnProperty(onMessageName) ? actor[onMessageName] : null;
+  actor[onMessageName] = function (from, message) {
+    var handled = babbler._onMessage(message);
+    if (!handled) {
+      onMessageOriginal.call(actor, from, message);
+    }
+  };
+
+  // attach send function to the babbler
+  babbler.send = function (to, message) {
+    // FIXME: there should be no need to send a message on next tick
+    setTimeout(function () {
+      actor[sendName](to, message)
+    }, 0)
+  };
+
+  // attach babbler functions and properties to the actor
+  actor.__babbler__ = {
+    babbler: babbler,
+    onMessage: onMessageOriginal,
+    onMessageName: onMessageName
+  };
+  actor.ask = babbler.ask.bind(babbler);
+  actor.tell = babbler.tell.bind(babbler);
+  actor.listen = babbler.listen.bind(babbler);
+
+  return actor;
+};
+
+/**
+ * Unbabblify an actor.
+ * @param {Object} actor
+ * @return {Object} Returns the unbabblified actor.
+ */
+exports.unbabblify = function (actor) {
+  var __babbler__ = actor.__babbler__;
+  if (__babbler__) {
+    delete actor.__babbler__;
+    delete actor.ask;
+    delete actor.tell;
+    delete actor.listen;
+    delete actor[__babbler__.onMessageName];
+
+    // restore any original onMessage method
+    if (__babbler__.onMessage) {
+      actor[__babbler__.onMessageName] = __babbler__.onMessage;
+    }
+  }
+
+  return actor;
+};
 
 },{"./Babbler":2,"./block/Block":4,"./block/Decision":5,"./block/Listen":6,"./block/Tell":7,"./block/Then":8,"./messagers":9}],4:[function(require,module,exports){
 'use strict';
