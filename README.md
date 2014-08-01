@@ -115,8 +115,7 @@ jack.tell('emma', 'hi')
         return 'my age is 25';
       }
     })
-    .listen()
-    .then(printMessage);
+    .listen(printMessage);
 ```
 
 ### Plan a meeting
@@ -198,9 +197,39 @@ Babble has the following factory functions:
 
 - `babble.ask(message: String [, callback: Function]) : Block`  
   Send a question and listen for a reply. 
+
   This is equivalent of doing `tell(message).listen([callback])`.
 - `babble.babbler(id: String) : Babbler`  
   Factory function to create a new Babbler.
+
+- `babble.babblify(actor: Object, params: Object) : Object`  
+  Babblify an actor. The babblified actor will be extended with functions
+  `ask`, `tell`, and `listen`.
+ 
+  Babble expects that messages sent via `actor.send(to, message)` will be 
+  delivered by the recipient on a function `actor.onMessage(from, message)`.
+  Babble replaces the original `onMessage` with a new one, which is used to
+  listen for all incoming messages. Messages ignored by babble are propagated
+  to the original `onMessage` function.
+ 
+  The function accepts the following parameters:
+  
+  - `actor: Object`  
+    The actor to be babblified. Must be an Object containing functions 
+    `send(to, message)` and `onMessage(from, message)`.
+  - `[params: Object]`  
+    Optional parameters. Can contain properties:
+    
+      - `id: string`
+        The id for the babbler
+      - `send: string`
+        The name of an alternative send function available on the actor.
+      - `onMessage: string`
+        The name of an alternative onMessage function available on the actor.
+
+  The function returns the babblified actor. A babblified actor can be restored 
+  in its original state using `unbabblify(actor)`.
+
 - `babble.decide([decision: Function, ] choices: Object<String, Block>) : Block`  
   Create a flow starting with a `Decision` block.
   When a `decision` function is provided, the function is invoked as
@@ -210,21 +239,27 @@ Babble has the following factory functions:
   `response`. Parameter `choices` is a map with the possible next blocks in the
   flow. The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
+
 - `babble.listen([callback: Function])`  
   Wait for a message. The provided callback function is called as 
   `callback(response, context)`, where `response` is the just received message.
+
 - `babble.tell(message: Function | *) : Block`  
   Create a flow starting with a `Tell` block. Message can be a static value,
   or a callback function returning a message dynamically. The callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result.
   The returned result is send to the connected peer.
+
 - `babble.then(next: Block | function) : Block`  
   Create a flow starting with given block. When a callback function is provided,
   the function is wrapped into a `Then` block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
   received message, and must return a result. The returned result is passed to 
   the next block in the chain.
+
+- `babble.unbabblify(actor: Object) : Object`  
+  Unbabblify an actor. Returns the unbabblified actor.
 
 Babble contains the following prototypes. These prototypes are normally
 instantiated via the above mentioned factory functions.

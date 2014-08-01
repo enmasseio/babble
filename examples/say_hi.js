@@ -4,8 +4,7 @@ var emma = babble.babbler('emma');
 var jack = babble.babbler('jack');
 
 emma.listen('hi')
-    .listen()
-    .then(printMessage)
+    .listen(printMessage)
     .decide(function (message, context) {
       return (message.indexOf('age') != -1) ? 'age' : 'name';
     }, {
@@ -21,8 +20,7 @@ jack.tell('emma', 'hi')
         return 'my age is 25';
       }
     })
-    .listen()
-    .then(printMessage);
+    .listen(printMessage);
 
 function printMessage (message, context) {
   console.log(context.from + ': ' + message);

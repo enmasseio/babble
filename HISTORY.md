@@ -12,6 +12,7 @@ https://github.com/enmasseio/babble
 - Added function `Block.ask`.
 - Changed the API for messagers: `connect` must return a token, and a messager
   must contain a function `disconnect(token)`.
+- Implemented support for babblifying actors.
 
 
 ## 2014-02-14, version 0.6.0
