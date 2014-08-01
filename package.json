@@ -1,6 +1,6 @@
 {
   "name": "babble",
-  "version": "0.7.0",
+  "version": "0.7.1-SNAPSHOT",
   "description": "Dynamic communication flows between message based actors.",
   "author": "Jos de Jong <wjosdejong@gmail.com> (https://github.com/josdejong)",
   "keywords": [
