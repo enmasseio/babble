@@ -2,6 +2,11 @@
 https://github.com/enmasseio/babble
 
 
+## not yet released, version 0.8.0
+
+- Implemented a new block: `IIf(condition, trueBlock, falseBlock)`.
+
+
 ## 2014-08-01, version 0.7.0
 
 - On creation, a babbler is now automatically connected to the default (local) 

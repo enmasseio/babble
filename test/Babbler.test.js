@@ -208,6 +208,21 @@ describe('Babbler', function() {
           });
     });
 
+    it ('should make a decision with an iif block', function(done) {
+      emma.listen('are you available?')
+          .tell(function (response) {
+            return 'yes';
+          });
+
+      jack.ask('emma', 'are you available?')
+          .iif('yes', new Then(function (message) {
+            assert.equal(message, 'yes');
+            done();
+          }), new Then(function (message) {
+            assert.ok(false, 'should not execute falseBlock')
+          }));
+    });
+
     it('should run then blocks', function(done) {
       var logs = [];
 

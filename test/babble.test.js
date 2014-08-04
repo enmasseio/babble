@@ -5,6 +5,7 @@ var Babbler = require('../lib/Babbler');
 var Tell = require('../lib/block/Tell');
 var Listen = require('../lib/block/Listen');
 var Decision = require('../lib/block/Decision');
+var IIf = require('../lib/block/IIf');
 var Then = require('../lib/block/Then');
 
 describe('babbler', function() {
@@ -37,6 +38,11 @@ describe('babbler', function() {
   it('should create a flow starting with a decision block', function() {
     var block = babble.decide(function () {}, {});
     assert.ok(block instanceof Decision);
+  });
+
+  it('should create a flow starting with an iif block', function() {
+    var block = babble.iif(function () {});
+    assert.ok(block instanceof IIf);
   });
 
   it('should create a flow starting with a Then block', function() {
