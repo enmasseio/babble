@@ -223,6 +223,20 @@ describe('Babbler', function() {
           }));
     });
 
+    it ('should make a decision with an inline iif block', function(done) {
+      emma.listen('are you available?')
+          .tell(function (response) {
+            return 'yes';
+          });
+
+      jack.ask('emma', 'are you available?')
+          .iif('yes')
+          .then(function (message) {
+            assert.equal(message, 'yes');
+            done();
+          });
+    });
+
     it('should run then blocks', function(done) {
       var logs = [];
 

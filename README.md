@@ -240,9 +240,17 @@ Babble has the following factory functions:
   flow. The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
 
+- `babble.iif(condition: function | RegExp | * [, trueBlock : Block] [, falseBlock : Block]) : Block`  
+  Create a control folow starting with an `IIf` block.
+  When the condition evaluates `true`, `trueBlock` is executed. If no `trueBlock`
+  is provided, the next block in the chain will be executed.
+  When the condition evaluates `true`, `falseBlock` is executed.
+
 - `babble.listen([callback: Function])`  
   Wait for a message. The provided callback function is called as 
   `callback(response, context)`, where `response` is the just received message.
+  Providing a callback function is equivalent of doing 
+  `babble.listen().then(callback)`.
 
 - `babble.tell(message: Function | *) : Block`  
   Create a flow starting with a `Tell` block. Message can be a static value,
@@ -267,6 +275,7 @@ instantiated via the above mentioned factory functions.
 - `babble.Babbler`
 - `babble.block.Block`
 - `babble.block.Decision`
+- `babble.block.IIf`
 - `babble.block.Listen`
 - `babble.block.Tell`
 - `babble.block.Then`
@@ -308,6 +317,8 @@ A babbler has the following functions:
 - `listen(message: String [, callback: Function]) : Block`  
   Listen for incoming messages. If there is a match, the returned control flow
   block will be executed. Other blocks can be chained to the returned block.
+  Providing a callback function is equivalent of doing 
+  `listen(message).then(callback)`.
 
 - `send(id: String, message: *)`  
   Send a message to another peer.
@@ -331,12 +342,22 @@ A `Block` has the following functions:
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`  
   Append a `Decision` block to the control flow. Returns the first block in the
   chain.
+
+- `iif(condition: function | RegExp | * [, trueBlock : Block] [, falseBlock : Block]) : Block`  
+  Append an `IIf` block to the control flow. Returns the first block in the
+  chain. When the condition evaluates `true`, `trueBlock` is executed. 
+  If no `trueBlock` is provided, the next block in the chain will be executed.
+  When the condition evaluates `true`, `falseBlock` is executed.
+
+- `listen([callback: Function]) : Block`  
+  Append a `Listen` block to the control flow. Returns the first block in the
+  chain. Providing a callback function is equivalent of doing 
+  `listen().then(callback)`.
+
 - `tell(message: *) : Block`  
   Append a `Tell` block to the control flow. Parameter `message` can be callback
   function or an object or value. Returns the first block in the chain.
-- `listen([callback: Function]) : Block`  
-  Append a `Listen` block to the control flow. Returns the first block in the
-  chain.
+
 - `then(block : Block | function) : Block`  
   Append an arbitrary block to the control flow. When a callback function is
   provided, it is wrapped into a `Then` block and added to the chain.
