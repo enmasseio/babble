@@ -4,7 +4,7 @@ Dynamic communication flows between message based actors.
 
 Babble makes it easy to code communication flows between actors. A conversation
 is modeled as a control flow diagram containing blocks `ask`, `tell`, `listen`,
-`decide`, and `then`. Each block can link to a next block in the
+`iif`, `decide`, and `then`. Each block can link to a next block in the
 control flow. Conversations are dynamic: a scenario is build programmatically,
 and the blocks can dynamically determine the next block in the scenario.
 During a conversation, a context is available to store the state of the
@@ -56,7 +56,7 @@ var babble = require('babble');
 var emma = babble.babbler('emma');
 var jack = babble.babbler('jack');
 
-emma.listen(/age/)
+emma.listen(/age|how old/)   
     .tell(function () {
       return 25;
     });
@@ -333,7 +333,7 @@ A babbler has the following functions:
 ### Block
 
 Blocks can be created via the factory functions available in `babble`
-(`tell`, `decide`, `then`, `listen`), or in a Babbler (`listen`, `tell`,
+(`tell`, `iif`, `decide`, `then`, `listen`), or in a Babbler (`listen`, `tell`,
 `ask`). Blocks can be chained together, resulting in a control flow. The results
 returned by blocks are used as input argument for the next block in the chain.
 
