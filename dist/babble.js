@@ -30,7 +30,7 @@ function Babbler (id) {
   }
 
   this.id = id;
-  this.listeners = {};
+  this.listeners = [];   // Array.<Listen>
   this.conversations = {};
 
   this.connect(); // automatically connect to the local message bus
@@ -102,8 +102,6 @@ Babbler.prototype.connect = function (messager) {
 /**
  * Handle an incoming message
  * @param {{id: string, from: string, to: string, message: string}} envelope
- * @returns {boolean} Returns true when a message has been handled, else returns
- *                    false
  * @private
  */
 Babbler.prototype._onMessage = function (envelope) {
@@ -120,26 +118,22 @@ Babbler.prototype._onMessage = function (envelope) {
     return true;
   }
   else {
-    // check the listeners to start a new conversation
-    trigger = this.listeners[message];
-    if (trigger) {
+    // start flows of all listeners
+    for (var i = 0; i < this.listeners.length; i++) {
+      var block = this.listeners[i];
       //console.log('message create a new conversation', trigger, trigger.callback); // TODO: cleanup
       // create a new conversation
       conversation = {
         id: envelope.id,
         peer: envelope.from,
-        next: trigger,
+        next: block,
         context: {
           from: envelope.from
         }
       };
-
       this._run(conversation, message);
-      return true;
     }
   }
-
-  return false;
 };
 
 /**
@@ -152,17 +146,24 @@ Babbler.prototype.disconnect = function () {
 
 /**
  * Send a message
- * @param {String} id
- * @param {*} message
+ * @param {String} to  Id of a babbler
+ * @param {*} message  Any message. Message must be a stringifiable JSON object.
  */
-Babbler.prototype.send = function (id, message) {
+Babbler.prototype.send = function (to, message) {
   // send is overridden when running connect
   throw new Error('Cannot send: not connected');
 };
 
 /**
  * Listen for a specific event
- * @param {String} message
+ *
+ * Providing a condition will only start the flow when condition is met,
+ * this is equivalent of doing `listen().iif(condition)`
+ *
+ * Providing a callback function is equivalent of doing either
+ * `listen(message).then(callback)` or `listen().iif(message).then(callback)`.
+ *
+ * @param {function | RegExp | String | *} [condition]
  * @param {Function} [callback] Invoked as callback(message, context),
  *                              where `message` is the just received message,
  *                              and `context` is an object where state can be
@@ -170,29 +171,28 @@ Babbler.prototype.send = function (id, message) {
  *                              of doing `listen().then(callback)`
  * @return {Block} block        Start block of a control flow.
  */
-// TODO: remove callback from listen
-Babbler.prototype.listen = function (message, callback) {
-  if (typeof message !== 'string') {
-    throw new TypeError('Parameter message must be a string');
+Babbler.prototype.listen = function (condition, callback) {
+  var listen = new Listen();
+  this.listeners.push(listen);
+
+  var block = listen;
+  if (condition) {
+    block = listen.iif(condition);
   }
-
-  // TODO: add support for a string as callback
-
-  var listen = new Listen(callback);
-
-  this.listeners[message] = listen;
-
-  return listen;
+  if (callback) {
+    block = listen.then(callback);
+  }
+  return block;
 };
 
 /**
  * Send a message to the other peer
  * Creates a block Tell, and runs the block immediately.
- * @param {String} id       Babbler id
+ * @param {String} to       Babbler id
  * @param {Function | *} message
  * @return {Block} block    Last block in the created control flow
  */
-Babbler.prototype.tell = function (id, message) {
+Babbler.prototype.tell = function (to, message) {
   var cid = uuid.v4(); // create an id for this conversation
 
   var block = new Tell();
@@ -200,12 +200,16 @@ Babbler.prototype.tell = function (id, message) {
   // create a new conversation
   var conversation = {
     id: cid,
-    peer: id,
+    peer: to,
     next: block,
     context: {
-      from: id
+      from: to
     }
   };
+
+  if (typeof message === 'function') {
+    message = message(undefined, conversation.context);
+  }
 
   // override the `then` function, so we can immediately execute chained blocks
   // until we encounter a Listen block.
@@ -258,8 +262,8 @@ Babbler.prototype.then = function (callback) {
 /**
  * Send a question, listen for a response.
  * Creates two blocks: Tell and Listen, and runs them immediately.
- * This is equivalent of doing `Babbler.tell(id, message).listen(callback)`
- * @param {String} id             Babbler id
+ * This is equivalent of doing `Babbler.tell(to, message).listen(callback)`
+ * @param {String} to             Babbler id
  * @param {* | Function} message
  * @param {Function} [callback] Invoked as callback(message, context),
  *                              where `message` is the just received message,
@@ -268,9 +272,9 @@ Babbler.prototype.then = function (callback) {
  *                              of doing `listen().then(callback)`
  * @return {Block} block        Last block in the created control flow
  */
-Babbler.prototype.ask = function (id, message, callback) {
+Babbler.prototype.ask = function (to, message, callback) {
   return this
-      .tell(id, message)
+      .tell(to, message)
       .listen(callback);
 };
 
@@ -319,7 +323,7 @@ Babbler.prototype._run = function (conversation, message) {
 
 module.exports = Babbler;
 
-},{"./block/Block":4,"./block/Listen":6,"./block/Tell":7,"./block/Then":8,"./messagers":9,"es6-promise":30,"node-uuid":40}],3:[function(require,module,exports){
+},{"./block/Block":4,"./block/Listen":7,"./block/Tell":8,"./block/Then":9,"./messagers":10,"es6-promise":31,"node-uuid":41}],3:[function(require,module,exports){
 'use strict';
 
 var Babbler = require('./Babbler');
@@ -328,6 +332,7 @@ var Tell = require('./block/Tell');
 var Listen = require('./block/Listen');
 var Then = require('./block/Then');
 var Decision = require('./block/Decision');
+var IIf = require('./block/IIf');
 
 /**
  * Create a new babbler
@@ -413,7 +418,11 @@ exports.decide = function (arg1, arg2) {
 };
 
 /**
- * Listen for a message
+ * Listen for a message.
+ *
+ * Optionally a callback function can be provided, which is equivalent of
+ * doing `listen().then(callback)`.
+ *
  * @param {Function} [callback] Invoked as callback(message, context),
  *                              where `message` is the just received message,
  *                              and `context` is an object where state can be
@@ -422,7 +431,11 @@ exports.decide = function (arg1, arg2) {
  * @return {Block}              Returns the created Listen block
  */
 exports.listen = function(callback) {
-  return new Listen(callback);
+  var block = new Listen();
+  if (callback) {
+    return block.then(callback);
+  }
+  return block;
 };
 
 /**
@@ -437,6 +450,43 @@ exports.then = function (callback) {
   return new Then(callback);
 };
 
+/**
+ * IIf
+ * Create an iif block, which checks a condition and continues either with
+ * the trueBlock or the falseBlock. The input message is passed to the next
+ * block in the flow.
+ *
+ * Can be used as follows:
+ * - When `condition` evaluates true:
+ *   - when `trueBlock` is provided, the flow continues with `trueBlock`
+ *   - else, when there is a block connected to the IIf block, the flow continues
+ *     with that block.
+ * - When `condition` evaluates false:
+ *   - when `falseBlock` is provided, the flow continues with `falseBlock`
+ *
+ * Syntax:
+ *
+ *     new IIf(condition, trueBlock)
+ *     new IIf(condition, trueBlock [, falseBlock])
+ *     new IIf(condition).then(...)
+ *
+ * @param {Function | RegExp | *} condition   A condition returning true or false
+ *                                            In case of a function,
+ *                                            the function is invoked as
+ *                                            `condition(message, context)` and
+ *                                            must return a boolean. In case of
+ *                                            a RegExp, condition will be tested
+ *                                            to return true. In other cases,
+ *                                            non-strict equality is tested on
+ *                                            the input.
+ * @param {Block} [trueBlock]
+ * @param {Block} [falseBlock]
+ * @returns {Block}
+ */
+exports.iif = function (condition, trueBlock, falseBlock) {
+  return new IIf(condition, trueBlock, falseBlock);
+};
+
 // export the babbler prototype
 exports.Babbler = Babbler;
 
@@ -445,6 +495,7 @@ exports.block = {
   Block: require('./block/Block'),
   Then: require('./block/Then'),
   Decision: require('./block/Decision'),
+  IIf: require('./block/IIf'),
   Listen: require('./block/Listen'),
   Tell: require('./block/Tell')
 };
@@ -509,12 +560,17 @@ exports.babblify = function (actor, params) {
   // attach onMessage function to the babbler
   var onMessageName = params && params.onMessage || 'onMessage';
   var onMessageOriginal = actor.hasOwnProperty(onMessageName) ? actor[onMessageName] : null;
-  actor[onMessageName] = function (from, message) {
-    var handled = babbler._onMessage(message);
-    if (!handled) {
+  if (onMessageOriginal) {
+    actor[onMessageName] = function (from, message) {
+      babbler._onMessage(message);
       onMessageOriginal.call(actor, from, message);
-    }
-  };
+    };
+  }
+  else {
+    actor[onMessageName] = function (from, message) {
+      babbler._onMessage(message);
+    };
+  }
 
   // attach send function to the babbler
   babbler.send = function (to, message) {
@@ -560,7 +616,7 @@ exports.unbabblify = function (actor) {
   return actor;
 };
 
-},{"./Babbler":2,"./block/Block":4,"./block/Decision":5,"./block/Listen":6,"./block/Tell":7,"./block/Then":8,"./messagers":9}],4:[function(require,module,exports){
+},{"./Babbler":2,"./block/Block":4,"./block/Decision":5,"./block/IIf":6,"./block/Listen":7,"./block/Tell":8,"./block/Then":9,"./messagers":10}],4:[function(require,module,exports){
 'use strict';
 
 /**
@@ -588,6 +644,8 @@ module.exports = Block;
 'use strict';
 
 var Block = require('./Block');
+
+require('./Then'); // extend Block with function then
 
 /**
  * Decision
@@ -617,8 +675,8 @@ var Block = require('./Block');
  *                              The next block is selected by the id returned
  *                              by the decision function.
  *
- * @param arg1   Can be {function} decision or {Object} choices
- * @param [arg2] {Object} choices
+ * @param arg1
+ * @param arg2
  * @constructor
  * @extends {Block}
  */
@@ -644,7 +702,7 @@ function Decision (arg1, arg2) {
     }
   }
   else {
-    decision = function (message) {
+    decision = function (message, context) {
       return message;
     }
   }
@@ -748,7 +806,6 @@ Decision.prototype.addChoice = function (id, block) {
  * @return {Block} first            First block in the chain
  */
 Block.prototype.decide = function (arg1, arg2) {
-  // TODO: test arguments.length > 2
   var decision = new Decision(arg1, arg2);
 
   return this.then(decision);
@@ -756,37 +813,160 @@ Block.prototype.decide = function (arg1, arg2) {
 
 module.exports = Decision;
 
-},{"./Block":4}],6:[function(require,module,exports){
+},{"./Block":4,"./Then":9}],6:[function(require,module,exports){
 'use strict';
 
 var Block = require('./Block');
+
+require('./Then'); // extend Block with function then
+
+/**
+ * IIf
+ * Create an iif block, which checks a condition and continues either with
+ * the trueBlock or the falseBlock. The input message is passed to the next
+ * block in the flow.
+ *
+ * Can be used as follows:
+ * - When `condition` evaluates true:
+ *   - when `trueBlock` is provided, the flow continues with `trueBlock`
+ *   - else, when there is a block connected to the IIf block, the flow continues
+ *     with that block.
+ * - When `condition` evaluates false:
+ *   - when `falseBlock` is provided, the flow continues with `falseBlock`
+ *
+ * Syntax:
+ *
+ *     new IIf(condition, trueBlock)
+ *     new IIf(condition, trueBlock [, falseBlock])
+ *     new IIf(condition).then(...)
+ *
+ * @param {Function | RegExp | *} condition   A condition returning true or false
+ *                                            In case of a function,
+ *                                            the function is invoked as
+ *                                            `condition(message, context)` and
+ *                                            must return a boolean. In case of
+ *                                            a RegExp, condition will be tested
+ *                                            to return true. In other cases,
+ *                                            non-strict equality is tested on
+ *                                            the input.
+ * @param {Block} [trueBlock]
+ * @param {Block} [falseBlock]
+ * @constructor
+ * @extends {Block}
+ */
+function IIf (condition, trueBlock, falseBlock) {
+  if (!(this instanceof IIf)) {
+    throw new SyntaxError('Constructor must be called with the new operator');
+  }
+
+  if (condition instanceof Function) {
+    this.condition = condition;
+  }
+  else if (condition instanceof RegExp) {
+    this.condition = function (message, context) {
+      return condition.test(message);
+    }
+  }
+  else {
+    this.condition = function (message, context) {
+      return message == condition;
+    }
+  }
+
+  if (trueBlock && !(trueBlock instanceof Block)) {
+    throw new TypeError('Parameter trueBlock must be a Block');
+  }
+
+  if (falseBlock && !(falseBlock instanceof Block)) {
+    throw new TypeError('Parameter falseBlock must be a Block');
+  }
+
+  this.trueBlock = trueBlock || null;
+  this.falseBlock = falseBlock || null;
+}
+
+IIf.prototype = Object.create(Block.prototype);
+
+/**
+ * Execute the block
+ * @param {*} message
+ * @param {Object} context
+ * @return {{result: *, block: Block}} next
+ */
+IIf.prototype.execute = function (message, context) {
+  var next = null;
+  if (this.condition(message, context)) {
+    next = this.trueBlock || this.next;
+  }
+  else {
+    next = this.falseBlock;
+  }
+
+  return {
+    result: message,
+    block: next
+  };
+};
+
+/**
+ * IIf
+ * Create an iif block, which checks a condition and continues either with
+ * the trueBlock or the falseBlock. The input message is passed to the next
+ * block in the flow.
+ *
+ * Can be used as follows:
+ * - When `condition` evaluates true:
+ *   - when `trueBlock` is provided, the flow continues with `trueBlock`
+ *   - else, when there is a block connected to the IIf block, the flow continues
+ *     with that block.
+ * - When `condition` evaluates false:
+ *   - when `falseBlock` is provided, the flow continues with `falseBlock`
+ *
+ * Syntax:
+ *
+ *     new IIf(condition, trueBlock)
+ *     new IIf(condition, trueBlock [, falseBlock])
+ *     new IIf(condition).then(...)
+ *
+ * @param {Function | RegExp | *} condition   A condition returning true or false
+ *                                            In case of a function,
+ *                                            the function is invoked as
+ *                                            `condition(message, context)` and
+ *                                            must return a boolean. In case of
+ *                                            a RegExp, condition will be tested
+ *                                            to return true. In other cases,
+ *                                            non-strict equality is tested on
+ *                                            the input.
+ * @param {Block} [trueBlock]
+ * @param {Block} [falseBlock]
+ * @returns {Block}
+ */
+Block.prototype.iif = function (condition, trueBlock, falseBlock) {
+  var iif = new IIf(condition, trueBlock, falseBlock);
+
+  return this.then(iif);
+};
+
+module.exports = IIf;
+
+},{"./Block":4,"./Then":9}],7:[function(require,module,exports){
+'use strict';
+
+var Block = require('./Block');
+var Then = require('./Then');
 
 /**
  * Listen
  * Wait until a message comes in from the connected peer, then continue
  * with the next block in the control flow.
- * @param {Function} [callback] Invoked as callback(message, context),
- *                              where `message` is the just received message,
- *                              and `context` is an object where state can be
- *                              stored during a conversation.
- *                              If callback is provided, the returned result of
- *                              the callback function is passed to the next
- *                              block, else, the received message is passed.
+ *
  * @constructor
  * @extends {Block}
  */
-function Listen (callback) {
+function Listen () {
   if (!(this instanceof Listen)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
-
-  if (callback && !(typeof callback === 'function')) {
-    throw new TypeError('Parameter callback must be a Function');
-  }
-
-  this.callback = callback || function (message) {
-    return message;
-  };
 }
 
 Listen.prototype = Object.create(Block.prototype);
@@ -798,10 +978,8 @@ Listen.prototype = Object.create(Block.prototype);
  * @return {{result: *, block: Block}} next
  */
 Listen.prototype.execute = function (message, context) {
-  var result = this.callback(message, context);
-
   return {
-    result: result,
+    result: message,
     block: this.next
   };
 };
@@ -809,22 +987,32 @@ Listen.prototype.execute = function (message, context) {
 /**
  * Create a Listen block and chain it to the current block
  * Returns the first block in the chain.
+ *
+ * Optionally a callback function can be provided, which is equivalent of
+ * doing `listen().then(callback)`.
+ *
  * @param {Function} [callback] Executed as callback(message: *, context: Object)
  *                              Must return a result
  * @return {Block} first        First block in the chain
  */
 Block.prototype.listen = function (callback) {
-  var block = new Listen(callback);
-
-  return this.then(block);
+  var listen = new Listen();
+  var block = this.then(listen);
+  if (callback) {
+    block = block.then(callback);
+  }
+  return block;
 };
 
 module.exports = Listen;
 
-},{"./Block":4}],7:[function(require,module,exports){
+},{"./Block":4,"./Then":9}],8:[function(require,module,exports){
 'use strict';
 
 var Block = require('./Block');
+
+require('./Then');   // extend Block with function then
+require('./Listen'); // extend Block with function listen
 
 /**
  * Tell
@@ -916,7 +1104,7 @@ Block.prototype.ask = function (message, callback) {
 
 module.exports = Tell;
 
-},{"./Block":4}],8:[function(require,module,exports){
+},{"./Block":4,"./Listen":7,"./Then":9}],9:[function(require,module,exports){
 'use strict';
 
 var Block = require('./Block');
@@ -1004,7 +1192,7 @@ Block.prototype.then = function (next) {
 
 module.exports = Then;
 
-},{"./Block":4}],9:[function(require,module,exports){
+},{"./Block":4}],10:[function(require,module,exports){
 'use strict';
 
 // built-in messaging interfaces
@@ -1033,8 +1221,8 @@ exports['pubsub-js'] = function () {
       PubSub.unsubscribe(token);
     },
 
-    send: function (id, message) {
-      PubSub.publish(id, message);
+    send: function (to, message) {
+      PubSub.publish(to, message);
     }
   }
 };
@@ -1075,9 +1263,9 @@ exports['pubnub'] = function (params) {
       pubnub.unsubscribe(id);
     },
 
-    send: function (id, message) {
+    send: function (to, message) {
       pubnub.publish({
-        channel: id,
+        channel: to,
         message: message
       });
     }
@@ -1087,7 +1275,7 @@ exports['pubnub'] = function (params) {
 // default interface
 exports['default'] = exports['pubsub-js'];
 
-},{"pubnub":undefined,"pubsub-js":41}],10:[function(require,module,exports){
+},{"pubnub":undefined,"pubsub-js":42}],11:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2258,7 +2446,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":11,"ieee754":12}],11:[function(require,module,exports){
+},{"base64-js":12,"ieee754":13}],12:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -2380,7 +2568,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -2466,7 +2654,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('sha.js')
 
@@ -2500,7 +2688,7 @@ module.exports = function (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":17,"buffer":10,"ripemd160":18,"sha.js":20}],14:[function(require,module,exports){
+},{"./md5":18,"buffer":11,"ripemd160":19,"sha.js":21}],15:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('./create-hash')
 
@@ -2545,7 +2733,7 @@ Hmac.prototype.digest = function (enc) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"./create-hash":13,"buffer":10}],15:[function(require,module,exports){
+},{"./create-hash":14,"buffer":11}],16:[function(require,module,exports){
 (function (Buffer){
 var intSize = 4;
 var zeroBuffer = new Buffer(intSize); zeroBuffer.fill(0);
@@ -2583,7 +2771,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 module.exports = { hash: hash };
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10}],16:[function(require,module,exports){
+},{"buffer":11}],17:[function(require,module,exports){
 (function (Buffer){
 var rng = require('./rng')
 
@@ -2641,7 +2829,7 @@ each(['createCredentials'
 })
 
 }).call(this,require("buffer").Buffer)
-},{"./create-hash":13,"./create-hmac":14,"./pbkdf2":24,"./rng":25,"buffer":10}],17:[function(require,module,exports){
+},{"./create-hash":14,"./create-hmac":15,"./pbkdf2":25,"./rng":26,"buffer":11}],18:[function(require,module,exports){
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
  * Digest Algorithm, as defined in RFC 1321.
@@ -2798,7 +2986,7 @@ module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
 
-},{"./helpers":15}],18:[function(require,module,exports){
+},{"./helpers":16}],19:[function(require,module,exports){
 (function (Buffer){
 
 module.exports = ripemd160
@@ -3007,7 +3195,7 @@ function ripemd160(message) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10}],19:[function(require,module,exports){
+},{"buffer":11}],20:[function(require,module,exports){
 var u = require('./util')
 var write = u.write
 var fill = u.zeroFill
@@ -3107,7 +3295,7 @@ module.exports = function (Buffer) {
   return Hash
 }
 
-},{"./util":23}],20:[function(require,module,exports){
+},{"./util":24}],21:[function(require,module,exports){
 var exports = module.exports = function (alg) {
   var Alg = exports[alg]
   if(!Alg) throw new Error(alg + ' is not supported (we accept pull requests)')
@@ -3121,7 +3309,7 @@ exports.sha =
 exports.sha1 = require('./sha1')(Buffer, Hash)
 exports.sha256 = require('./sha256')(Buffer, Hash)
 
-},{"./hash":19,"./sha1":21,"./sha256":22,"buffer":10}],21:[function(require,module,exports){
+},{"./hash":20,"./sha1":22,"./sha256":23,"buffer":11}],22:[function(require,module,exports){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
  * in FIPS PUB 180-1
@@ -3282,7 +3470,7 @@ module.exports = function (Buffer, Hash) {
   return Sha1
 }
 
-},{"util":29}],22:[function(require,module,exports){
+},{"util":30}],23:[function(require,module,exports){
 
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -3447,7 +3635,7 @@ module.exports = function (Buffer, Hash) {
 
 }
 
-},{"./util":23,"util":29}],23:[function(require,module,exports){
+},{"./util":24,"util":30}],24:[function(require,module,exports){
 exports.write = write
 exports.zeroFill = zeroFill
 
@@ -3485,7 +3673,7 @@ function zeroFill(buf, from) {
 }
 
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 (function (Buffer){
 // JavaScript PBKDF2 Implementation
 // Based on http://git.io/qsv2zw
@@ -3571,7 +3759,7 @@ module.exports = function (createHmac, exports) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10}],25:[function(require,module,exports){
+},{"buffer":11}],26:[function(require,module,exports){
 (function (Buffer){
 (function() {
   module.exports = function(size) {
@@ -3585,7 +3773,7 @@ module.exports = function (createHmac, exports) {
 }())
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10}],26:[function(require,module,exports){
+},{"buffer":11}],27:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -3610,7 +3798,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -3675,14 +3863,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -4272,13 +4460,13 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":28,"_process":27,"inherits":26}],30:[function(require,module,exports){
+},{"./support/isBuffer":29,"_process":28,"inherits":27}],31:[function(require,module,exports){
 "use strict";
 var Promise = require("./promise/promise").Promise;
 var polyfill = require("./promise/polyfill").polyfill;
 exports.Promise = Promise;
 exports.polyfill = polyfill;
-},{"./promise/polyfill":34,"./promise/promise":35}],31:[function(require,module,exports){
+},{"./promise/polyfill":35,"./promise/promise":36}],32:[function(require,module,exports){
 "use strict";
 /* global toString */
 
@@ -4372,7 +4560,7 @@ function all(promises) {
 }
 
 exports.all = all;
-},{"./utils":39}],32:[function(require,module,exports){
+},{"./utils":40}],33:[function(require,module,exports){
 (function (process,global){
 "use strict";
 var browserGlobal = (typeof window !== 'undefined') ? window : {};
@@ -4436,7 +4624,7 @@ function asap(callback, arg) {
 
 exports.asap = asap;
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":27}],33:[function(require,module,exports){
+},{"_process":28}],34:[function(require,module,exports){
 "use strict";
 var config = {
   instrument: false
@@ -4452,7 +4640,7 @@ function configure(name, value) {
 
 exports.config = config;
 exports.configure = configure;
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 (function (global){
 "use strict";
 /*global self*/
@@ -4493,7 +4681,7 @@ function polyfill() {
 
 exports.polyfill = polyfill;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./promise":35,"./utils":39}],35:[function(require,module,exports){
+},{"./promise":36,"./utils":40}],36:[function(require,module,exports){
 "use strict";
 var config = require("./config").config;
 var configure = require("./config").configure;
@@ -4705,7 +4893,7 @@ function publishRejection(promise) {
 }
 
 exports.Promise = Promise;
-},{"./all":31,"./asap":32,"./config":33,"./race":36,"./reject":37,"./resolve":38,"./utils":39}],36:[function(require,module,exports){
+},{"./all":32,"./asap":33,"./config":34,"./race":37,"./reject":38,"./resolve":39,"./utils":40}],37:[function(require,module,exports){
 "use strict";
 /* global toString */
 var isArray = require("./utils").isArray;
@@ -4795,7 +4983,7 @@ function race(promises) {
 }
 
 exports.race = race;
-},{"./utils":39}],37:[function(require,module,exports){
+},{"./utils":40}],38:[function(require,module,exports){
 "use strict";
 /**
   `RSVP.reject` returns a promise that will become rejected with the passed
@@ -4843,7 +5031,7 @@ function reject(reason) {
 }
 
 exports.reject = reject;
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 "use strict";
 function resolve(value) {
   /*jshint validthis:true */
@@ -4859,7 +5047,7 @@ function resolve(value) {
 }
 
 exports.resolve = resolve;
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 "use strict";
 function objectOrFunction(x) {
   return isFunction(x) || (typeof x === "object" && x !== null);
@@ -4882,7 +5070,7 @@ exports.objectOrFunction = objectOrFunction;
 exports.isFunction = isFunction;
 exports.isArray = isArray;
 exports.now = now;
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 (function (Buffer){
 //     uuid.js
 //
@@ -5131,7 +5319,7 @@ exports.now = now;
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":10,"crypto":16}],41:[function(require,module,exports){
+},{"buffer":11,"crypto":17}],42:[function(require,module,exports){
 /*
 Copyright (c) 2010,2011,2012,2013 Morgan Roderick http://roderick.dk
 License: MIT - http://mrgnrdrck.mit-license.org

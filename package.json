@@ -24,8 +24,7 @@
     "uglify-js": "latest"
   },
   "scripts": {
-    "build": "browserify ./index.js -o ./dist/babble.js -s babble -x pubnub",
-    "minify": "npm run build; uglifyjs ./dist/babble.js --output ./dist/babble.min.js --source-map ./dist/babble.min.map --source-map-url ./babble.min.map --compress --mangle --comments",
+    "build": "browserify ./index.js -o ./dist/babble.js -s babble -x pubnub; uglifyjs ./dist/babble.js --output ./dist/babble.min.js --source-map ./dist/babble.map --source-map-url ./babble.min.map --compress --mangle --comments",
     "test": "mocha test --recursive --reporter spec"
   },
   "main": "./index.js"

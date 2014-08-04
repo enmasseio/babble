@@ -375,13 +375,12 @@ browserify and uglify. First install all project dependencies:
 
     npm install
 
-To build the library `./dist/babble.js`, run:
+To build the library, run:
 
     npm run build
 
-To build and minify the library `./dist/babble.min.js`, run:
-
-    npm run minify
+This generates the files `./dist/babble.js`, `./dist/babble.min.js`, and 
+`./dist/babble.min.map`.
 
 
 ## Test
@@ -397,11 +396,8 @@ Then, the tests can be executed:
 
 # To do
 
-- Implement mixin pattern, enrich any object (like an actor) with babbler functionality.
-- Implement an `if` function which can test a function, regexp, or 'string', and continue
-  with one block when condition is met or another block when not matched.
-- Implement a `filter` function, which only continues a chain when a condition is met. 
-- Implement error handling.
-- Implement support for returning promises from callbacks, to allow async callback functions.
+- Implement error handling and timeout conditions.
+- Implement support for returning promises from callbacks, allowing async 
+  callback functions.
 - Store message history in the context.
 - Implement conversations with multiple peers at the same time.
