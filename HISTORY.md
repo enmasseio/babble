@@ -5,6 +5,8 @@ https://github.com/enmasseio/babble
 ## not yet released, version 0.8.0
 
 - Implemented a new block: `IIf(condition, trueBlock, falseBlock)`.
+- `Babbler.listen` now has a start condition instead of a fixed string.
+  Condition can be a function, regexp, or any value. (Uses `iif` under the hood).
 
 
 ## 2014-08-01, version 0.7.0

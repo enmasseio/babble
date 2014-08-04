@@ -49,11 +49,6 @@ describe('Babbler', function() {
       assert.equal(Object.keys(emma.listeners).length, 1);
     });
 
-    it ('should throw an error when calling listen wrongly', function () {
-      assert.throws(function () {emma.listen({'a': 'not a string'})});
-      assert.throws(function () {emma.listen()});
-    });
-
   });
 
   describe ('tell', function () {
@@ -65,6 +60,17 @@ describe('Babbler', function() {
           });
 
       jack.tell('emma', 'test');
+    });
+
+    it('should tell a function as message', function(done) {
+      emma.listen('test', function (response) {
+            assert.equal(response, 'test');
+            done();
+          });
+
+      jack.tell('emma', function () {
+        return 'test';
+      });
     });
 
     it('should tell two messages subsequently', function(done) {

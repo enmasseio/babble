@@ -3,7 +3,7 @@ var babble = require('../index');
 var emma = babble.babbler('emma');
 var jack = babble.babbler('jack');
 
-emma.listen('what is your age?')
+emma.listen(/age/)
     .tell(function () {
       return 25;
     });

@@ -56,7 +56,7 @@ var babble = require('babble');
 var emma = babble.babbler('emma');
 var jack = babble.babbler('jack');
 
-emma.listen('what is your age?')
+emma.listen(/age/)
     .tell(function () {
       return 25;
     });
@@ -289,9 +289,9 @@ function `Babbler.connect(messager)`.
 
 A babbler has the following functions:
 
-- `ask(id: String, message: String [, callback: Function]) : Block`  
+- `ask(to: String, message: String [, callback: Function]) : Block`  
   Send a question to another peer and listen for a reply. 
-  This is equivalent of doing `tell(id, message).listen([callback])`.
+  This is equivalent of doing `tell(to, message).listen([callback])`.
   Other blocks can be chained to the returned block.
 
 - `connect([messager: Object]) : Promise.<Babbler>`  
@@ -314,16 +314,20 @@ A babbler has the following functions:
 - `disconnect()`  
   Disconnect from the connected messaging system.
 
-- `listen(message: String [, callback: Function]) : Block`  
-  Listen for incoming messages. If there is a match, the returned control flow
-  block will be executed. Other blocks can be chained to the returned block.
-  Providing a callback function is equivalent of doing 
-  `listen(message).then(callback)`.
+- `listen([condition: Function | RegExp | * [, callback: Function]]) : Block`  
+  Listen for incoming messages and start the conversation flow. 
+  Other blocks can be chained to the returned block.
 
-- `send(id: String, message: *)`  
+  Providing a condition will only start the flow when condition is met,
+  this is equivalent of doing `listen().iif(condition)`
+  
+  Providing a callback function is equivalent of doing either 
+  `listen(message).then(callback)` or `listen().iif(message).then(callback)`.
+
+- `send(to: String, message: *)`  
   Send a message to another peer.
 
-- `tell(id: String, message: Function | *)`  
+- `tell(to: String, message: Function | *)`  
   Send a notification to another peer.
 
 ### Block

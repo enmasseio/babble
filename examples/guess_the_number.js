@@ -69,8 +69,8 @@ var MAX = 50;
 (function () {
   var jack = babble.babbler('jack');
 
-  function decideToStart (response) {
-    return (response == 'ok') ? 'start': 'cancel';
+  function canStart (response) {
+    return (response == 'ok');
   }
 
   function decideIfCorrect (response) {
@@ -108,10 +108,11 @@ var MAX = 50;
   checkGuess.addChoice('wrong', babble.tell(guess).listen().then(checkGuess));
 
   jack.ask('emma', 'lets play guess the number')
-      .decide(decideToStart, {
-        start:  babble.then(start).tell(guess).listen().then(checkGuess),
-        cancel: babble.then(whine)
-      });
+      .iif(
+        canStart,                                                 // condition
+        babble.then(start).tell(guess).listen().then(checkGuess), // trueBlock
+        babble.then(whine)                                        // falseBlock
+      );
 
 })();
 
