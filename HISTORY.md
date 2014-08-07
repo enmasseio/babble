@@ -2,7 +2,7 @@
 https://github.com/enmasseio/babble
 
 
-## not yet released, version 0.8.0
+## 2014-08-07, version 0.8.0
 
 - Completely reworked the library internally to support asynchronous flows 
   using promises.
