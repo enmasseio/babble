@@ -84,7 +84,7 @@ response from emma.
 
 This scenario can be represented by the following control flow diagram:
 
-![ask age](https://raw.github.com/enmasseio/babble/master/img/say_hi.png)
+![say hi](https://raw.github.com/enmasseio/babble/master/img/say_hi.png)
 
 The scenario can be programmed as:
 
@@ -94,13 +94,11 @@ var babble = require('babble');
 var emma = babble.babbler('emma');
 var jack = babble.babbler('jack');
 
-function printMessage (message, context) {
-  console.log(context.from + ': ' + message);
-  return message;
-}
-
 emma.listen('hi')
-    .listen(printMessage)
+    .listen(function (message, context) {
+      console.log(context.from + ': ' + message);
+      return message;
+    })
     .decide(function (message, context) {
       return (message.indexOf('age') != -1) ? 'age' : 'name';
     }, {
@@ -116,7 +114,9 @@ jack.tell('emma', 'hi')
         return 'my age is 25';
       }
     })
-    .listen(printMessage);
+    .listen(function (message, context) {
+      console.log(context.from + ': ' + message);
+    });
 ```
 
 ### Plan a meeting
@@ -188,7 +188,6 @@ jack.ask('emma', 'do you have time today?')
               }),
       no: babble.then(noTime)
     });
-
 ```
 
 
@@ -196,10 +195,10 @@ jack.ask('emma', 'do you have time today?')
 
 Babble has the following factory functions:
 
-- `babble.ask(message: String [, callback: Function]) : Block`  
+- `babble.ask(message: String | Function [, callback: Function]) : Block`  
   Send a question and listen for a reply. 
-
   This is equivalent of doing `tell(message).listen([callback])`.
+
 - `babble.babbler(id: String) : Babbler`  
   Factory function to create a new Babbler.
 
@@ -236,13 +235,17 @@ Babble has the following factory functions:
   When a `decision` function is provided, the function is invoked as
   `decision(response, context)`. The function must return the id for the next
   block in the control flow, which must be available in the provided `options`.
+  The function `decision` can also return a Promise resolving with an id for the 
+  next block.
   If `decision` is not provided, the next block will be mapped directly from the
   `response`. Parameter `choices` is a map with the possible next blocks in the
   flow. The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
 
 - `babble.iif(condition: function | RegExp | * [, trueBlock : Block] [, falseBlock : Block]) : Block`  
-  Create a control folow starting with an `IIf` block.
+  Create a control flow starting with an `IIf` block.
+  When the condition is a function, it can either return a boolean or a Promise
+  resolving with a boolean value.
   When the condition evaluates `true`, `trueBlock` is executed. If no `trueBlock`
   is provided, the next block in the chain will be executed.
   When the condition evaluates `true`, `falseBlock` is executed.
@@ -250,6 +253,9 @@ Babble has the following factory functions:
 - `babble.listen([callback: Function])`  
   Wait for a message. The provided callback function is called as 
   `callback(response, context)`, where `response` is the just received message.
+  When the callback returns a promise, babble will wait with execution of the 
+  next block until the promise is resolved. The result returned by the callback
+  is passed to the next block in the chain.
   Providing a callback function is equivalent of doing 
   `babble.listen().then(callback)`.
 
@@ -257,15 +263,20 @@ Babble has the following factory functions:
   Create a flow starting with a `Tell` block. Message can be a static value,
   or a callback function returning a message dynamically. The callback function
   is called as `callback(response, context)`, where `response` is the latest
-  received message, and must return a result.
+  received message, and must return a result. 
   The returned result is send to the connected peer.
+  When the callback returns a Promise, the value returned when the promise
+  resolves will be send to the connected peer.
 
 - `babble.then(next: Block | function) : Block`  
   Create a flow starting with given block. When a callback function is provided,
   the function is wrapped into a `Then` block. The provided callback function
   is called as `callback(response, context)`, where `response` is the latest
-  received message, and must return a result. The returned result is passed to 
-  the next block in the chain.
+  received message, and must return a result. 
+  When the callback returns a promise, babble will wait with execution of the 
+  next block until the promise is resolved. The result returned by the callback
+  is passed to the next block in the chain.
+
 
 - `babble.unbabblify(actor: Object) : Object`  
   Unbabblify an actor. Returns the unbabblified actor.
@@ -290,8 +301,7 @@ function `Babbler.connect(messager)`.
 
 A babbler has the following functions:
 
-- `ask(to: String, message: String [, callback: Function]) : Block`  
-  Send a question to another peer and listen for a reply. 
+- `ask(to: String, message: * | Function [, callback: Function]) : Block`  
   This is equivalent of doing `tell(to, message).listen([callback])`.
   Other blocks can be chained to the returned block.
 
@@ -320,16 +330,23 @@ A babbler has the following functions:
   Other blocks can be chained to the returned block.
 
   Providing a condition will only start the flow when condition is met,
-  this is equivalent of doing `listen().iif(condition)`
+  this is equivalent of doing `listen().iif(condition)`.
   
   Providing a callback function is equivalent of doing either 
   `listen(message).then(callback)` or `listen().iif(message).then(callback)`.
+  The callback is invoked as `callback(message, context)`, and must return
+  either a result or a Promise resolving with a result. The result will be 
+  passed to the next block in the chain.
 
 - `send(to: String, message: *)`  
   Send a message to another peer.
 
 - `tell(to: String, message: Function | *)`  
   Send a notification to another peer.
+  `message` can be a static value or a callback function. When `message` is
+  a function, it is invoked as `callback(message, context)`, and must return
+  either a result or a Promise resolving with a result. The result will be 
+  sent to the other peer, and will be passed to the next block in the chain.
 
 ### Block
 
@@ -344,6 +361,7 @@ A `Block` has the following functions:
   Append a `Tell` and `Listen` block to the control flow. 
   Parameter `message` can be a callback function or an object or value. 
   Returns the first block in the chain.
+
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`  
   Append a `Decision` block to the control flow. Returns the first block in the
   chain.
@@ -359,7 +377,7 @@ A `Block` has the following functions:
   chain. Providing a callback function is equivalent of doing 
   `listen().then(callback)`.
 
-- `tell(message: *) : Block`  
+- `tell(message: * | Function) : Block`  
   Append a `Tell` block to the control flow. Parameter `message` can be callback
   function or an object or value. Returns the first block in the chain.
 

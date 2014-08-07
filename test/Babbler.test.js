@@ -121,7 +121,7 @@ describe('Babbler', function() {
           });
     });
 
-    it ('should send a message, listen, and send a reply', function(done) {
+    it('should send a message, listen, and send a reply', function(done) {
       emma.listen('count', function () {
             return 0;
           })
@@ -139,7 +139,7 @@ describe('Babbler', function() {
           });
     });
 
-    it ('should send an object as reply', function(done) {
+    it('should send an object as reply', function(done) {
       emma.listen('test')
           .tell(function (response) {
             return {a: 2, b: 3}
@@ -151,7 +151,7 @@ describe('Babbler', function() {
       });
     });
 
-    it ('should send an object as reply (2)', function(done) {
+    it('should send an object as reply (2)', function(done) {
       emma.listen('test')
           .tell({a: 2, b: 3});
 
@@ -161,7 +161,7 @@ describe('Babbler', function() {
       });
     });
 
-    it ('should invoke the callback provided with listener', function(done) {
+    it('should invoke the callback provided with listener', function(done) {
       emma.listen('what is you age?', function (response) {
         assert.equal(response, 'what is you age?');
         done();
@@ -170,7 +170,7 @@ describe('Babbler', function() {
       jack.tell('emma', 'what is you age?');
     });
 
-    it ('should invoke the callback provided with ask', function(done) {
+    it('should invoke the callback provided with ask', function(done) {
       emma.listen('age')
           .tell(function () {
             return 32;
@@ -214,7 +214,7 @@ describe('Babbler', function() {
           });
     });
 
-    it ('should make a decision with an iif block', function(done) {
+    it('should make a decision with an iif block', function(done) {
       emma.listen('are you available?')
           .tell(function (response) {
             return 'yes';
@@ -229,7 +229,7 @@ describe('Babbler', function() {
           }));
     });
 
-    it ('should make a decision with an inline iif block', function(done) {
+    it('should make a decision with an inline iif block', function(done) {
       emma.listen('are you available?')
           .tell(function (response) {
             return 'yes';
@@ -269,7 +269,7 @@ describe('Babbler', function() {
           });
     });
 
-    it ('should keep state in the context during the conversation', function(done) {
+    it('should keep state in the context during the conversation', function(done) {
       emma.listen('question', function () {
             return 'a';
           })

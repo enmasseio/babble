@@ -3,17 +3,20 @@
 
 module.exports = require('./lib/babble');
 
-},{"./lib/babble":3}],2:[function(require,module,exports){
+},{"./lib/babble":4}],2:[function(require,module,exports){
 'use strict';
 
 var uuid = require('node-uuid');
 var Promise = require('es6-promise').Promise;
 
 var messagers = require('./messagers');
+var Conversation = require('./Conversation');
 var Block = require('./block/Block');
 var Then = require('./block/Then');
 var Tell = require('./block/Tell');
 var Listen = require('./block/Listen');
+
+require('./block/IIf'); // append iif function to Block
 
 /**
  * Babbler
@@ -30,8 +33,8 @@ function Babbler (id) {
   }
 
   this.id = id;
-  this.listeners = [];   // Array.<Listen>
-  this.conversations = {};
+  this.listeners = [];      // Array.<Listen>
+  this.conversations = {};  // Array.<Array.<Conversation>> all open conversations
 
   this.connect(); // automatically connect to the local message bus
 }
@@ -78,7 +81,7 @@ Babbler.prototype.connect = function (messager) {
   // we return a promise, but we run the message.connect function immediately
   // (outside of the Promise), so that synchronous connects are done without
   // the need to await the promise to resolve on the next tick.
-  var _resolve;
+  var _resolve = null;
   var connected = new Promise(function (resolve, reject) {
     _resolve = resolve;
   });
@@ -105,34 +108,60 @@ Babbler.prototype.connect = function (messager) {
  * @private
  */
 Babbler.prototype._onMessage = function (envelope) {
-  var conversation;
-  var trigger;
-  var message = envelope.message;
+  // ignore when envelope does not contain an id and message
+  if (!envelope || !('id' in envelope) || !('message' in envelope)) {
+    return;
+  }
 
-  //console.log('message', this.id, envelope); // TODO: cleanup
+  // console.log('_onMessage', envelope) // TODO: cleanup
 
-  // check the open conversations
-  conversation = this.conversations[envelope.id];
-  if (conversation) {
-    this._run(conversation, message);
-    return true;
+  var me = this;
+  var id = envelope.id;
+  var conversations = this.conversations[id];
+  if (conversations && conversations.length) {
+    // directly deliver to all open conversations with this id
+    conversations.forEach(function (conversation) {
+      conversation.deliver(envelope);
+    })
   }
   else {
-    // start flows of all listeners
-    for (var i = 0; i < this.listeners.length; i++) {
-      var block = this.listeners[i];
-      //console.log('message create a new conversation', trigger, trigger.callback); // TODO: cleanup
+    // start new conversations at each of the listeners
+    if (!conversations) {
+      conversations = [];
+    }
+    this.conversations[id] = conversations;
+
+    this.listeners.forEach(function (block) {
       // create a new conversation
-      conversation = {
-        id: envelope.id,
-        peer: envelope.from,
-        next: block,
+      var conversation = new Conversation({
+        id: id,
+        self: me.id,
+        other: envelope.from,
         context: {
           from: envelope.from
-        }
-      };
-      this._run(conversation, message);
-    }
+        },
+        send: me.send
+      });
+
+      // append this conversation to the list with conversations
+      conversations.push(conversation);
+
+      // deliver the first message to the new conversation
+      conversation.deliver(envelope);
+
+      // process the conversation
+      return me._process(block, conversation)
+          .then(function() {
+            // remove the conversation from the list again
+            var index = conversations.indexOf(conversation);
+            if (index !== -1) {
+              conversations.splice(index, 1);
+            }
+            if (conversations.length === 0) {
+              delete me.conversations[id];
+            }
+          });
+    });
   }
 };
 
@@ -193,78 +222,41 @@ Babbler.prototype.listen = function (condition, callback) {
  * @return {Block} block    Last block in the created control flow
  */
 Babbler.prototype.tell = function (to, message) {
+  var me = this;
   var cid = uuid.v4(); // create an id for this conversation
 
-  var block = new Tell();
-
   // create a new conversation
-  var conversation = {
+  var conversation = new Conversation({
     id: cid,
-    peer: to,
-    next: block,
+    self: this.id,
+    other: to,
     context: {
       from: to
-    }
-  };
+    },
+    send: me.send
+  });
+  this.conversations[cid] = [conversation];
 
-  if (typeof message === 'function') {
-    message = message(undefined, conversation.context);
-  }
+  var block = new Tell(message);
 
-  // override the `then` function, so we can immediately execute chained blocks
-  // until we encounter a Listen block.
-  var me = this;
-  block.then = function then (next) {
-    // turn a callback function into a Then block
-    if (typeof next === 'function') {
-      next = new Then(next);
-    }
-
-    if (!(next instanceof Block)) {
-      throw new TypeError('Parameter next must be a Block or function');
-    }
-
-    conversation.next = next;
-
-    if (next instanceof Listen) {
-      // add to the conversations queue
-      me.conversations[cid] = conversation;
-    }
-    else {
-      // execute immediately
-      message = me._run(conversation, message);
-      next.then = then;
-    }
-
-    return next;
-  };
-
-  // run the Tell block immediately
-  message = this._run(conversation, message);
+  // run the Tell block on the next tick, when the conversation flow is created
+  setTimeout(function () {
+    me._process(block, conversation)
+        .then(function () {
+          // cleanup the conversation
+          delete me.conversations[cid];
+    })
+  }, 0);
 
   return block;
 };
-
-/**
- * Create a control flow starting with a Then block
- * @param {Function} callback   Invoked as callback(message, context),
- *                              where `message` is the output from the previous
- *                              block in the chain, and `context` is an object
- *                              where state can be stored during a conversation.
- * @return {Then} then
- */
-/* TODO: implement Babbler.then
-Babbler.prototype.then = function (callback) {
-
-};
-*/
 
 /**
  * Send a question, listen for a response.
  * Creates two blocks: Tell and Listen, and runs them immediately.
  * This is equivalent of doing `Babbler.tell(to, message).listen(callback)`
  * @param {String} to             Babbler id
- * @param {* | Function} message
+ * @param {* | Function} message  A message or a callback returning a message.
  * @param {Function} [callback] Invoked as callback(message, context),
  *                              where `message` is the just received message,
  *                              and `context` is an object where state can be
@@ -279,51 +271,124 @@ Babbler.prototype.ask = function (to, message, callback) {
 };
 
 /**
- * Run next block for given conversation
- * @param {Object} conversation
- * @param {*} [message]
- * @return {*} message    Response returned by the last executed block
+ * Process a flow starting with `block`, given a conversation
+ * @param {Block} block
+ * @param {Conversation} conversation
+ * @return {Promise.<Conversation>} Resolves when the conversation is finished
  * @private
  */
-Babbler.prototype._run = function (conversation, message) {
-  // console.log('_run', conversation, message); // TODO: cleanup
+Babbler.prototype._process = function (block, conversation) {
+  return new Promise(function (resolve, reject) {
+    /**
+     * Process a block, given the conversation and a message which is chained
+     * from block to block.
+     * @param {Block} block
+     * @param {*} [message]
+     */
+    function process(block, message) {
+      //console.log('process', conversation.self, conversation.id, block.constructor.name, message) // TODO: cleanup
 
-  // remove the conversation from the queue
-  delete this.conversations[conversation.id];
-
-  var block = conversation.next;
-  do {
-    var next = block.execute(message, conversation.context);
-    message = next.result;
-
-    if (block.next instanceof Listen) {
-      // wait for a next incoming message
-      // Note: we add this listener *before* we send a message,
-      // this is needed in case the reply is send synchronously
-      conversation.next = block.next;
-      this.conversations[conversation.id] = conversation;
+      block.execute(conversation, message)
+          .then(function (next) {
+            if (next.block) {
+              // recursively evaluate the next block in the conversation flow
+              process(next.block, next.result);
+            }
+            else {
+              // we are done, this is the end of the conversation
+              resolve(conversation);
+            }
+          });
     }
 
-    if (block instanceof Tell) {
-      // send a response back to the other peer
-      this.send(conversation.peer, {
-        id: conversation.id,
-        from: this.id,
-        to: conversation.peer,
-        message: message
-      });
-    }
-
-    block = next.block;
-  }
-  while (block && !(block instanceof Listen));
-
-  return message;
+    // process the first block
+    process(block);
+  });
 };
 
 module.exports = Babbler;
 
-},{"./block/Block":4,"./block/Listen":7,"./block/Tell":8,"./block/Then":9,"./messagers":10,"es6-promise":31,"node-uuid":41}],3:[function(require,module,exports){
+},{"./Conversation":3,"./block/Block":5,"./block/IIf":7,"./block/Listen":8,"./block/Tell":9,"./block/Then":10,"./messagers":11,"es6-promise":33,"node-uuid":43}],3:[function(require,module,exports){
+var uuid = require('node-uuid');
+var Promise = require('es6-promise').Promise;
+
+/**
+ * A conversation
+ * Holds meta data for a conversation between two peers
+ * @param {Object} [config] Configuration options:
+ *                          {string} [id]      A unique id for the conversation. If not provided, a uuid is generated
+ *                          {string} self      Id of the peer on this side of the conversation
+ *                          {string} other     Id of the peer on the other side of the conversation
+ *                          {Object} [context] Context passed with all callbacks of the conversation
+ *                          {function(to: string, message: *): Promise} send   Function to send a message
+ * @constructor
+ */
+function Conversation (config) {
+  if (!(this instanceof Conversation)) {
+    throw new SyntaxError('Constructor must be called with the new operator');
+  }
+
+  // public properties
+  this.id =       config && config.id       || uuid.v4();
+  this.self =     config && config.self     || null;
+  this.other =    config && config.other    || null;
+  this.context =  config && config.context  || {};
+
+  // private properties
+  this._send =    config && config.send     || null;
+  this._inbox = [];     // queue with received but not yet picked messages
+  this._receivers = []; // queue with handlers waiting for a new message
+}
+
+/**
+ * Send a message
+ * @param {*} message
+ * @return {Promise.<null>} Resolves when the message has been sent
+ */
+Conversation.prototype.send = function (message) {
+  return this._send(this.other, {
+    id: this.id,
+    from: this.self,
+    to: this.other,
+    message: message
+  });
+};
+
+/**
+ * Deliver a message
+ * @param {{id: string, from: string, to: string, message: string}} envelope
+ */
+Conversation.prototype.deliver = function (envelope) {
+  if (this._receivers.length) {
+    var receiver = this._receivers.shift();
+    receiver(envelope.message);
+  }
+  else {
+    this._inbox.push(envelope.message);
+  }
+};
+
+/**
+ * Receive a message.
+ * @returns {Promise.<*>} Resolves with a message as soon as a message
+ *                        is delivered.
+ */
+Conversation.prototype.receive = function () {
+  var me = this;
+
+  if (this._inbox.length) {
+    return Promise.resolve(this._inbox.shift());
+  }
+  else {
+    return new Promise(function (resolve) {
+      me._receivers.push(resolve);
+    })
+  }
+};
+
+module.exports = Conversation;
+
+},{"es6-promise":33,"node-uuid":43}],4:[function(require,module,exports){
 'use strict';
 
 var Babbler = require('./Babbler');
@@ -356,11 +421,7 @@ exports.babbler = function (id) {
  * @return {Tell} tell
  */
 exports.tell = function (message) {
-  var callback = (typeof message === 'function') ? message : function () {
-    return message;
-  };
-
-  return new Tell(callback);
+  return new Tell(message);
 };
 
 /**
@@ -616,7 +677,7 @@ exports.unbabblify = function (actor) {
   return actor;
 };
 
-},{"./Babbler":2,"./block/Block":4,"./block/Decision":5,"./block/IIf":6,"./block/Listen":7,"./block/Tell":8,"./block/Then":9,"./messagers":10}],4:[function(require,module,exports){
+},{"./Babbler":2,"./block/Block":5,"./block/Decision":6,"./block/IIf":7,"./block/Listen":8,"./block/Tell":9,"./block/Then":10,"./messagers":11}],5:[function(require,module,exports){
 'use strict';
 
 /**
@@ -630,20 +691,22 @@ function Block() {
 
 /**
  * Execute the block
+ * @param {Conversation} conversation
  * @param {*} message
- * @param {Object} context
- * @return {{result: *, block: Block}} next
+ * @return {Promise.<{result: *, block: Block}, Error>} next
  */
-Block.prototype.execute = function (message, context) {
+Block.prototype.execute = function (conversation, message) {
   throw new Error('Cannot run an abstract Block');
 };
 
 module.exports = Block;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 'use strict';
 
+var Promise = require('es6-promise').Promise;
 var Block = require('./Block');
+var isPromise =require('../util').isPromise;
 
 require('./Then'); // extend Block with function then
 
@@ -727,27 +790,27 @@ Decision.prototype = Object.create(Block.prototype);
 
 /**
  * Execute the block
+ * @param {Conversation} conversation
  * @param {*} message
- * @param {Object} context
- * @return {{result: *, block: Block}} next
+ * @return {Promise.<{result: *, block: Block}, Error>} next
  */
-Decision.prototype.execute = function (message, context) {
-  var id = this.decision(message, context);
+Decision.prototype.execute = function (conversation, message) {
+  var me = this;
+  var id = this.decision(message, conversation.context);
 
-  if (typeof id !== 'string') {
-    throw new TypeError('Decision function must return a string containing ' +
-        'the id of the next block');
-  }
+  var resolve = isPromise(id) ? id : Promise.resolve(id);
+  return resolve.then(function (id) {
+    var next = me.choices[id];
 
-  var next = this.choices[id];
-  if (!next) {
-    throw new Error('Block with id "' + id + '" not found');
-  }
+    if (!next) {
+      throw new Error('Block with id "' + id + '" not found');
+    }
 
-  return {
-    result: message,
-    block: next
-  };
+    return {
+      result: message,
+      block: next
+    };
+  });
 };
 
 /**
@@ -813,10 +876,12 @@ Block.prototype.decide = function (arg1, arg2) {
 
 module.exports = Decision;
 
-},{"./Block":4,"./Then":9}],6:[function(require,module,exports){
+},{"../util":12,"./Block":5,"./Then":10,"es6-promise":33}],7:[function(require,module,exports){
 'use strict';
 
+var Promise = require('es6-promise').Promise;
 var Block = require('./Block');
+var isPromise = require('../util').isPromise;
 
 require('./Then'); // extend Block with function then
 
@@ -886,26 +951,28 @@ function IIf (condition, trueBlock, falseBlock) {
 }
 
 IIf.prototype = Object.create(Block.prototype);
+IIf.prototype.constructor = IIf;
 
 /**
  * Execute the block
+ * @param {Conversation} conversation
  * @param {*} message
- * @param {Object} context
- * @return {{result: *, block: Block}} next
+ * @return {Promise.<{result: *, block: Block}, Error>} next
  */
-IIf.prototype.execute = function (message, context) {
-  var next = null;
-  if (this.condition(message, context)) {
-    next = this.trueBlock || this.next;
-  }
-  else {
-    next = this.falseBlock;
-  }
+IIf.prototype.execute = function (conversation, message) {
+  var me = this;
+  var condition = this.condition(message, conversation.context);
 
-  return {
-    result: message,
-    block: next
-  };
+  var resolve = isPromise(condition) ? condition : Promise.resolve(condition);
+
+  return resolve.then(function (condition) {
+    var next = condition ? (me.trueBlock || me.next) : me.falseBlock;
+
+    return {
+      result: message,
+      block: next
+    };
+  });
 };
 
 /**
@@ -949,9 +1016,10 @@ Block.prototype.iif = function (condition, trueBlock, falseBlock) {
 
 module.exports = IIf;
 
-},{"./Block":4,"./Then":9}],7:[function(require,module,exports){
+},{"../util":12,"./Block":5,"./Then":10,"es6-promise":33}],8:[function(require,module,exports){
 'use strict';
 
+var Promise = require('es6-promise').Promise;
 var Block = require('./Block');
 var Then = require('./Then');
 
@@ -970,18 +1038,25 @@ function Listen () {
 }
 
 Listen.prototype = Object.create(Block.prototype);
+Listen.prototype.constructor = Listen;
 
 /**
  * Execute the block
- * @param {*} message
- * @param {Object} context
- * @return {{result: *, block: Block}} next
+ * @param {Conversation} conversation
+ * @param {*} [message]   Message is ignored by Listen blocks
+ * @return {Promise.<{result: *, block: Block}, Error>} next
  */
-Listen.prototype.execute = function (message, context) {
-  return {
-    result: message,
-    block: this.next
-  };
+Listen.prototype.execute = function (conversation, message) {
+  var me = this;
+
+  // wait until a message is received
+  return conversation.receive()
+      .then(function (message) {
+        return {
+          result: message,
+          block: me.next
+        }
+      });
 };
 
 /**
@@ -1006,10 +1081,12 @@ Block.prototype.listen = function (callback) {
 
 module.exports = Listen;
 
-},{"./Block":4,"./Then":9}],8:[function(require,module,exports){
+},{"./Block":5,"./Then":10,"es6-promise":33}],9:[function(require,module,exports){
 'use strict';
 
+var Promise = require('es6-promise').Promise;
 var Block = require('./Block');
+var isPromise = require('../util').isPromise;
 
 require('./Then');   // extend Block with function then
 require('./Listen'); // extend Block with function listen
@@ -1017,47 +1094,58 @@ require('./Listen'); // extend Block with function listen
 /**
  * Tell
  * Send a message to the other peer.
- * @param {Function} [callback] Invoked as callback(message, context),
- *                              where `message` is the output from the previous
- *                              block in the chain, and `context` is an object
- *                              where state can be stored during a conversation.
- *                              The result returned by the function will be
- *                              send back to the sender.
- *                              If no callback is provided, the block will send
- *                              the output from previous block in the chain as
- *                              message.
+ * @param {* | Function} message  A static message or callback function
+ *                                returning a message dynamically.
+ *                                When `message` is a function, it will be
+ *                                invoked as callback(message, context),
+ *                                where `message` is the output from the
+ *                                previous block in the chain, and `context` is
+ *                                an object where state can be stored during a
+ *                                conversation.
  * @constructor
  * @extends {Block}
  */
-function Tell (callback) {
+function Tell (message) {
   if (!(this instanceof Tell)) {
     throw new SyntaxError('Constructor must be called with the new operator');
   }
 
-  if (callback && !(typeof callback === 'function')) {
-    throw new TypeError('Parameter callback must be a Function');
-  }
-
-  this.callback = callback || function (message) {
-    return message;
-  };
+  this.message = message;
 }
 
 Tell.prototype = Object.create(Block.prototype);
+Tell.prototype.constructor = Tell;
 
 /**
  * Execute the block
- * @param {*} message
- * @param {Object} context
- * @return {{result: *, block: Block}} next
+ * @param {Conversation} conversation
+ * @param {*} [message] A message is ignored by the Tell block
+ * @return {Promise.<{result: *, block: Block}, Error>} next
  */
-Tell.prototype.execute = function (message, context) {
-  var result = this.callback(message, context);
+Tell.prototype.execute = function (conversation, message) {
+  // resolve the message
+  var me = this;
+  var resolve;
+  if (typeof this.message === 'function') {
+    var result = this.message(message, conversation.context);
+    resolve = isPromise(result) ? result : Promise.resolve(result);
+  }
+  else {
+    resolve = Promise.resolve(this.message); // static string or value
+  }
 
-  return {
-    result: result,
-    block: this.next
-  };
+  return resolve
+      .then(function (result) {
+        var res = conversation.send(result);
+        var done = isPromise(res) ? res : Promise.resolve(res);
+
+        return done.then(function () {
+            return {
+              result: result,
+              block: me.next
+            };
+          });
+      });
 };
 
 /**
@@ -1074,11 +1162,7 @@ Tell.prototype.execute = function (message, context) {
  * @return {Block} first        First block in the chain
  */
 Block.prototype.tell = function (message) {
-  var callback = (typeof message === 'function') ? message : function () {
-    return message;
-  };
-
-  var block = new Tell(callback);
+  var block = new Tell(message);
 
   return this.then(block);
 };
@@ -1104,10 +1188,12 @@ Block.prototype.ask = function (message, callback) {
 
 module.exports = Tell;
 
-},{"./Block":4,"./Listen":7,"./Then":9}],9:[function(require,module,exports){
+},{"../util":12,"./Block":5,"./Listen":8,"./Then":10,"es6-promise":33}],10:[function(require,module,exports){
 'use strict';
 
+var Promise = require('es6-promise').Promise;
 var Block = require('./Block');
+var isPromise = require('../util').isPromise;
 
 /**
  * Then
@@ -1132,20 +1218,26 @@ function Then (callback) {
 }
 
 Then.prototype = Object.create(Block.prototype);
+Then.prototype.constructor = Then;
 
 /**
  * Execute the block
+ * @param {Conversation} conversation
  * @param {*} message
- * @param {Object} context
- * @return {{result: *, block: Block}} next
+ * @return {Promise.<{result: *, block: Block}, Error>} next
  */
-Then.prototype.execute = function (message, context) {
-  var result = this.callback(message, context);
+Then.prototype.execute = function (conversation, message) {
+  var me = this;
+  var result = this.callback(message, conversation.context);
 
-  return {
-    result: result,
-    block: this.next
-  };
+  var resolve = isPromise(result) ? result : Promise.resolve(result);
+
+  return resolve.then(function (result) {
+    return {
+      result: result,
+      block: me.next
+    }
+  });
 };
 
 /**
@@ -1192,8 +1284,10 @@ Block.prototype.then = function (next) {
 
 module.exports = Then;
 
-},{"./Block":4}],10:[function(require,module,exports){
+},{"../util":12,"./Block":5,"es6-promise":33}],11:[function(require,module,exports){
 'use strict';
+
+var Promise = require('es6-promise').Promise;
 
 // built-in messaging interfaces
 
@@ -1264,10 +1358,13 @@ exports['pubnub'] = function (params) {
     },
 
     send: function (to, message) {
-      pubnub.publish({
-        channel: to,
-        message: message
-      });
+      return new Promise(function (resolve, reject) {
+        pubnub.publish({
+          channel: to,
+          message: message,
+          callback: resolve
+        });
+      })
     }
   }
 };
@@ -1275,7 +1372,21 @@ exports['pubnub'] = function (params) {
 // default interface
 exports['default'] = exports['pubsub-js'];
 
-},{"pubnub":undefined,"pubsub-js":42}],11:[function(require,module,exports){
+},{"es6-promise":33,"pubnub":undefined,"pubsub-js":44}],12:[function(require,module,exports){
+/**
+ * Test whether the provided value is a Promise.
+ * A value is marked as a Promise when it is an object containing functions
+ * `then` and `catch`.
+ * @param {*} value
+ * @return {boolean} Returns true when `value` is a Promise
+ */
+exports.isPromise = function (value) {
+  return value &&
+      typeof value['then'] === 'function' &&
+      typeof value['catch'] === 'function'
+};
+
+},{}],13:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2446,7 +2557,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":12,"ieee754":13}],12:[function(require,module,exports){
+},{"base64-js":14,"ieee754":15}],14:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -2568,7 +2679,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -2654,7 +2765,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('sha.js')
 
@@ -2688,7 +2799,7 @@ module.exports = function (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":18,"buffer":11,"ripemd160":19,"sha.js":21}],15:[function(require,module,exports){
+},{"./md5":20,"buffer":13,"ripemd160":21,"sha.js":23}],17:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('./create-hash')
 
@@ -2733,7 +2844,7 @@ Hmac.prototype.digest = function (enc) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"./create-hash":14,"buffer":11}],16:[function(require,module,exports){
+},{"./create-hash":16,"buffer":13}],18:[function(require,module,exports){
 (function (Buffer){
 var intSize = 4;
 var zeroBuffer = new Buffer(intSize); zeroBuffer.fill(0);
@@ -2771,7 +2882,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 module.exports = { hash: hash };
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],17:[function(require,module,exports){
+},{"buffer":13}],19:[function(require,module,exports){
 (function (Buffer){
 var rng = require('./rng')
 
@@ -2829,7 +2940,7 @@ each(['createCredentials'
 })
 
 }).call(this,require("buffer").Buffer)
-},{"./create-hash":14,"./create-hmac":15,"./pbkdf2":25,"./rng":26,"buffer":11}],18:[function(require,module,exports){
+},{"./create-hash":16,"./create-hmac":17,"./pbkdf2":27,"./rng":28,"buffer":13}],20:[function(require,module,exports){
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
  * Digest Algorithm, as defined in RFC 1321.
@@ -2986,7 +3097,7 @@ module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
 
-},{"./helpers":16}],19:[function(require,module,exports){
+},{"./helpers":18}],21:[function(require,module,exports){
 (function (Buffer){
 
 module.exports = ripemd160
@@ -3195,7 +3306,7 @@ function ripemd160(message) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],20:[function(require,module,exports){
+},{"buffer":13}],22:[function(require,module,exports){
 var u = require('./util')
 var write = u.write
 var fill = u.zeroFill
@@ -3295,7 +3406,7 @@ module.exports = function (Buffer) {
   return Hash
 }
 
-},{"./util":24}],21:[function(require,module,exports){
+},{"./util":26}],23:[function(require,module,exports){
 var exports = module.exports = function (alg) {
   var Alg = exports[alg]
   if(!Alg) throw new Error(alg + ' is not supported (we accept pull requests)')
@@ -3309,7 +3420,7 @@ exports.sha =
 exports.sha1 = require('./sha1')(Buffer, Hash)
 exports.sha256 = require('./sha256')(Buffer, Hash)
 
-},{"./hash":20,"./sha1":22,"./sha256":23,"buffer":11}],22:[function(require,module,exports){
+},{"./hash":22,"./sha1":24,"./sha256":25,"buffer":13}],24:[function(require,module,exports){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
  * in FIPS PUB 180-1
@@ -3470,7 +3581,7 @@ module.exports = function (Buffer, Hash) {
   return Sha1
 }
 
-},{"util":30}],23:[function(require,module,exports){
+},{"util":32}],25:[function(require,module,exports){
 
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -3635,7 +3746,7 @@ module.exports = function (Buffer, Hash) {
 
 }
 
-},{"./util":24,"util":30}],24:[function(require,module,exports){
+},{"./util":26,"util":32}],26:[function(require,module,exports){
 exports.write = write
 exports.zeroFill = zeroFill
 
@@ -3673,7 +3784,7 @@ function zeroFill(buf, from) {
 }
 
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function (Buffer){
 // JavaScript PBKDF2 Implementation
 // Based on http://git.io/qsv2zw
@@ -3759,7 +3870,7 @@ module.exports = function (createHmac, exports) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],26:[function(require,module,exports){
+},{"buffer":13}],28:[function(require,module,exports){
 (function (Buffer){
 (function() {
   module.exports = function(size) {
@@ -3773,7 +3884,7 @@ module.exports = function (createHmac, exports) {
 }())
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],27:[function(require,module,exports){
+},{"buffer":13}],29:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -3798,7 +3909,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -3863,14 +3974,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -4460,13 +4571,13 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":29,"_process":28,"inherits":27}],31:[function(require,module,exports){
+},{"./support/isBuffer":31,"_process":30,"inherits":29}],33:[function(require,module,exports){
 "use strict";
 var Promise = require("./promise/promise").Promise;
 var polyfill = require("./promise/polyfill").polyfill;
 exports.Promise = Promise;
 exports.polyfill = polyfill;
-},{"./promise/polyfill":35,"./promise/promise":36}],32:[function(require,module,exports){
+},{"./promise/polyfill":37,"./promise/promise":38}],34:[function(require,module,exports){
 "use strict";
 /* global toString */
 
@@ -4560,7 +4671,7 @@ function all(promises) {
 }
 
 exports.all = all;
-},{"./utils":40}],33:[function(require,module,exports){
+},{"./utils":42}],35:[function(require,module,exports){
 (function (process,global){
 "use strict";
 var browserGlobal = (typeof window !== 'undefined') ? window : {};
@@ -4624,7 +4735,7 @@ function asap(callback, arg) {
 
 exports.asap = asap;
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":28}],34:[function(require,module,exports){
+},{"_process":30}],36:[function(require,module,exports){
 "use strict";
 var config = {
   instrument: false
@@ -4640,7 +4751,7 @@ function configure(name, value) {
 
 exports.config = config;
 exports.configure = configure;
-},{}],35:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 (function (global){
 "use strict";
 /*global self*/
@@ -4681,7 +4792,7 @@ function polyfill() {
 
 exports.polyfill = polyfill;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./promise":36,"./utils":40}],36:[function(require,module,exports){
+},{"./promise":38,"./utils":42}],38:[function(require,module,exports){
 "use strict";
 var config = require("./config").config;
 var configure = require("./config").configure;
@@ -4893,7 +5004,7 @@ function publishRejection(promise) {
 }
 
 exports.Promise = Promise;
-},{"./all":32,"./asap":33,"./config":34,"./race":37,"./reject":38,"./resolve":39,"./utils":40}],37:[function(require,module,exports){
+},{"./all":34,"./asap":35,"./config":36,"./race":39,"./reject":40,"./resolve":41,"./utils":42}],39:[function(require,module,exports){
 "use strict";
 /* global toString */
 var isArray = require("./utils").isArray;
@@ -4983,7 +5094,7 @@ function race(promises) {
 }
 
 exports.race = race;
-},{"./utils":40}],38:[function(require,module,exports){
+},{"./utils":42}],40:[function(require,module,exports){
 "use strict";
 /**
   `RSVP.reject` returns a promise that will become rejected with the passed
@@ -5031,7 +5142,7 @@ function reject(reason) {
 }
 
 exports.reject = reject;
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 "use strict";
 function resolve(value) {
   /*jshint validthis:true */
@@ -5047,7 +5158,7 @@ function resolve(value) {
 }
 
 exports.resolve = resolve;
-},{}],40:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 "use strict";
 function objectOrFunction(x) {
   return isFunction(x) || (typeof x === "object" && x !== null);
@@ -5070,7 +5181,7 @@ exports.objectOrFunction = objectOrFunction;
 exports.isFunction = isFunction;
 exports.isArray = isArray;
 exports.now = now;
-},{}],41:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 (function (Buffer){
 //     uuid.js
 //
@@ -5319,7 +5430,7 @@ exports.now = now;
 }).call(this);
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11,"crypto":17}],42:[function(require,module,exports){
+},{"buffer":13,"crypto":19}],44:[function(require,module,exports){
 /*
 Copyright (c) 2010,2011,2012,2013 Morgan Roderick http://roderick.dk
 License: MIT - http://mrgnrdrck.mit-license.org

@@ -1,4 +1,6 @@
 var assert = require('assert');
+var Promise = require('es6-promise').Promise;
+var Conversation = require('../../lib/Conversation');
 var Block = require('../../lib/block/Block');
 var Listen = require('../../lib/block/Listen');
 var IIf = require('../../lib/block/IIf');
@@ -18,14 +20,34 @@ describe('Listen', function() {
     assert.throws(function () { Listen(function () {}) }, SyntaxError);
   });
 
-  it('should execute a listener without arguments', function () {
+  it('should execute a listener', function () {
     var listener = new Listen();
 
-    var next = listener.execute('foo');
-    assert.deepEqual(next, {
-      result: 'foo',
-      block: undefined
-    })
+    var conversation = new Conversation();
+    conversation.deliver({message: 'foo'});
+
+    return listener.execute(conversation).then(function(next) {
+      assert.deepEqual(next, {
+        result: 'foo',
+        block: undefined
+      })
+    });
+  });
+
+  it('should execute a listener with delay in receiving a message', function () {
+    var listener = new Listen();
+
+    var conversation = new Conversation();
+    setTimeout(function () {
+      conversation.deliver({message: 'foo'});
+    }, 10);
+
+    return listener.execute(conversation).then(function(next) {
+      assert.deepEqual(next, {
+        result: 'foo',
+        block: undefined
+      })
+    });
   });
 
   it('should execute a listener with next block', function () {
@@ -33,9 +55,14 @@ describe('Listen', function() {
     var nextListener = new Listen ();
     listener.then(nextListener);
 
-    var next = listener.execute('foo');
-    assert.strictEqual(next.result, 'foo');
-    assert.strictEqual(next.block, nextListener);
+
+    var conversation = new Conversation();
+    conversation.deliver({message: 'foo'});
+
+    return listener.execute(conversation).then(function(next) {
+      assert.strictEqual(next.result, 'foo');
+      assert.strictEqual(next.block, nextListener);
+    });
   });
 
   it('should create a listen+iif block from function .listen', function () {
@@ -48,13 +75,18 @@ describe('Listen', function() {
     assert(block.next instanceof Listen);
     assert(listen.next.next instanceof Then);
 
-    var next = block.next.execute('foo');
-    assert(next.block instanceof Then);
-    assert.strictEqual(next.result, 'foo');
+    var conversation = new Conversation();
+    conversation.deliver({message: 'foo'});
 
-    next = next.block.execute('foo');
-    assert.equal(next.block, null);
-    assert.strictEqual(next.result, 'foobar');
+    return block.next.execute(conversation).then(function(next) {
+      assert(next.block instanceof Then);
+      assert.strictEqual(next.result, 'foo');
+
+      return next.block.execute(conversation, next.result);
+    }).then(function(next) {
+      assert.equal(next.block, null);
+      assert.strictEqual(next.result, 'foobar');
+    });
   });
 
 });

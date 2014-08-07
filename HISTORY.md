@@ -4,6 +4,10 @@ https://github.com/enmasseio/babble
 
 ## not yet released, version 0.8.0
 
+- Completely reworked the library internally to support asynchronous flows 
+  using promises.
+- Callbacks can now return promises to resolve callbacks for decisions, 
+  conditions, and responses asynchronously.
 - Implemented a new block: `IIf(condition, trueBlock, falseBlock)`.
 - `Babbler.listen` now has a start condition instead of a fixed string.
   Condition can be a function, regexp, or any value. (Uses `iif` under the hood).

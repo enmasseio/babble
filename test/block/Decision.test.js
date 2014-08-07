@@ -1,4 +1,6 @@
 var assert = require('assert');
+var Promise = require('es6-promise').Promise;
+var Conversation = require('../../lib/Conversation');
 var Block = require('../../lib/block/Block');
 var Decision = require('../../lib/block/Decision');
 
@@ -82,36 +84,41 @@ describe('Decision', function() {
       no: no
     });
 
-    var context = {};
-    var next = decision.execute('yes', context);
-    assert.deepEqual(next, {
-      result: 'yes',
-      block: yes
+    var conversation = new Conversation();
+    return decision.execute(conversation, 'yes').then(function (next) {
+      assert.deepEqual(next, {
+        result: 'yes',
+        block: yes
+      })
     })
   });
 
-  it('should execute a decision without arguments', function () {
+  it('should execute a decision function returning a Promise', function () {
     var yes = new Block();
     var no = new Block();
-    var decision = new Decision(function (response, context) {
-      assert.strictEqual(response, 'message');
-      assert.strictEqual(context, undefined);
-      return 'yes';
-    }, {
+    var fn = function () {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          resolve('yes');
+        }, 10);
+      });
+    };
+    var decision = new Decision(fn, {
       yes: yes,
       no: no
     });
 
-    var next = decision.execute('message');
-    assert.deepEqual(next, {
-      result: 'message',
-      block: yes
+    var conversation = new Conversation();
+    return decision.execute(conversation, 'yes').then(function (next) {
+      assert.deepEqual(next, {
+        result: 'yes',
+        block: yes
+      })
     })
   });
 
   it('should execute a decision with context', function () {
     var yes = new Block();
-    var context = {a: 2};
     var decision = new Decision(function (response, context) {
       assert.strictEqual(response, 'message');
       assert.deepEqual(context, {a: 2});
@@ -120,16 +127,19 @@ describe('Decision', function() {
       yes: yes
     });
 
-    var next = decision.execute('message', context);
-    assert.deepEqual(next, {
-      result: 'message',
-      block: yes
-    })
+    var conversation = new Conversation({
+      context: {a: 2}
+    });
+    return decision.execute(conversation, 'message').then(function (next) {
+      assert.deepEqual(next, {
+        result: 'message',
+        block: yes
+      })
+    });
   });
 
   it('should execute a decision with context and argument', function () {
     var yes = new Block();
-    var context = {a: 2};
     var decision = new Decision(function (response, context) {
       assert.strictEqual(response, 'hello world');
       assert.deepEqual(context, {a: 2});
@@ -138,11 +148,15 @@ describe('Decision', function() {
       yes: yes
     });
 
-    var next = decision.execute('hello world', context);
-    assert.deepEqual(next, {
-      result: 'hello world',
-      block: yes
-    })
+    var conversation = new Conversation({
+      context: {a: 2}
+    });
+    return decision.execute(conversation, 'hello world').then(function (next) {
+      assert.deepEqual(next, {
+        result: 'hello world',
+        block: yes
+      })
+    });
   });
 
 });
