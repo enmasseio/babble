@@ -70,10 +70,15 @@ describe('Listen', function() {
     var callback = function (message) {
       return message + 'bar';
     };
-    var listen = block.listen(callback);
+    var b = block.listen(callback);
 
-    assert(block.next instanceof Listen);
-    assert(listen.next.next instanceof Then);
+    var listen = block.next;
+    var then = listen.next;
+
+    assert.strictEqual(b, then);
+    assert(listen instanceof Listen);
+    assert(then instanceof Then);
+    assert.strictEqual(then.next, undefined); // TODO: should be null
 
     var conversation = new Conversation();
     conversation.deliver({message: 'foo'});

@@ -360,31 +360,27 @@ A `Block` has the following functions:
 - `ask(message: * [, callback]) : Block`  
   Append a `Tell` and `Listen` block to the control flow. 
   Parameter `message` can be a callback function or an object or value. 
-  Returns the first block in the chain.
 
 - `decide([decision: function, ] choices: Object<String, Block>) : Block`  
-  Append a `Decision` block to the control flow. Returns the first block in the
-  chain.
+  Append a `Decision` block to the control flow. 
 
 - `iif(condition: function | RegExp | * [, trueBlock : Block] [, falseBlock : Block]) : Block`  
-  Append an `IIf` block to the control flow. Returns the first block in the
-  chain. When the condition evaluates `true`, `trueBlock` is executed. 
+  Append an `IIf` block to the control flow. 
+  When the condition evaluates `true`, `trueBlock` is executed. 
   If no `trueBlock` is provided, the next block in the chain will be executed.
   When the condition evaluates `true`, `falseBlock` is executed.
 
 - `listen([callback: Function]) : Block`  
-  Append a `Listen` block to the control flow. Returns the first block in the
-  chain. Providing a callback function is equivalent of doing 
-  `listen().then(callback)`.
+  Append a `Listen` block to the control flow. Providing a callback function is 
+  equivalent of doing `listen().then(callback)`.
 
 - `tell(message: * | Function) : Block`  
   Append a `Tell` block to the control flow. Parameter `message` can be callback
-  function or an object or value. Returns the first block in the chain.
+  function or an object or value.
 
 - `then(block : Block | function) : Block`  
   Append an arbitrary block to the control flow. When a callback function is
   provided, it is wrapped into a `Then` block and added to the chain.
-  Returns the first block in the chain.
 
 
 ## Build
