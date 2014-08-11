@@ -468,6 +468,10 @@ exports.ask = function (message, callback) {
  *                              The next block is selected by the id returned
  *                              by the decision function.
  *
+ * There is one special id for choices: 'default'. This id is called when either
+ * the decision function returns an id which does not match any of the available
+ * choices.
+ *
  * @param {Function | Object} arg1  Can be {function} decision or {Object} choices
  * @param {Object} [arg2]           choices
  * @return {Block} decision         The created decision block
@@ -737,6 +741,10 @@ require('./Then'); // extend Block with function then
  *                              The next block is selected by the id returned
  *                              by the decision function.
  *
+ * There is one special id for choices: 'default'. This id is called when either
+ * the decision function returns an id which does not match any of the available
+ * choices.
+ *
  * @param arg1
  * @param arg2
  * @constructor
@@ -803,6 +811,11 @@ Decision.prototype.execute = function (conversation, message) {
     var next = me.choices[id];
 
     if (!next) {
+      // there is no match, fall back on the default choice
+      next = me.choices['default'];
+    }
+
+    if (!next) {
       throw new Error('Block with id "' + id + '" not found');
     }
 
@@ -817,7 +830,7 @@ Decision.prototype.execute = function (conversation, message) {
  * Add a choice to the decision block.
  * The choice can be a new chain of blocks. The first block of the chain
  * will be triggered when the this id comes out of the decision function.
- * @param {String} id
+ * @param {String | 'default'} id
  * @param {Block} block
  * @return {Decision} self
  */
@@ -871,6 +884,10 @@ Decision.prototype.addChoice = function (id, block) {
  *                              A map with the possible next blocks in the flow
  *                              The next block is selected by the id returned
  *                              by the decision function.
+ *
+ * There is one special id for choices: 'default'. This id is called when either
+ * the decision function returns an id which does not match any of the available
+ * choices.
  *
  * @param {Function | Object} arg1  Can be {function} decision or {Object} choices
  * @param {Object} [arg2]           choices
