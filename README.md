@@ -404,18 +404,20 @@ interface must be an Object with the following functions:
 - `connect(params: Object) : string`  
   The function `connect` will be called by the Babbler with an object having 
   the following parameters: 
+
   - `id` the id of the babbler itself.
   - `message` the callback function to deliver messages for this babbler.
     This function must be invoked as `message(msg : *)`.
   - `callback` an optional callback function which is invoked when the 
     connection is established.
+
   The `connect` function must return a token which can be used to disconnect
   again.
 
 - `disconnect(token: string)`  
   Disconnect from a message bus. `token` is the token returned by the `connect`
   function.
-  
+
 - `send(id: string, message: *)`  
    Send a message to a babbler.
 
