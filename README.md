@@ -236,11 +236,15 @@ Babble has the following factory functions:
   `decision(response, context)`. The function must return the id for the next
   block in the control flow, which must be available in the provided `options`.
   The function `decision` can also return a Promise resolving with an id for the 
-  next block.
-  If `decision` is not provided, the next block will be mapped directly from the
-  `response`. Parameter `choices` is a map with the possible next blocks in the
-  flow. The next block is selected by the id returned by the `decision` function.
+  next block. When `decision` is not provided, the next block will be mapped 
+  directly from the `response`, which should be a string in that case. 
+  
+  Parameter `choices` is a map with the possible next blocks in the flow. 
+  The next block is selected by the id returned by the `decision` function.
   The returned block is used as next block in the control flow.
+
+  When there is no matching choice, the choice `'default'` will be selected
+  when available.
 
 - `babble.iif(condition: function | RegExp | * [, trueBlock : Block] [, falseBlock : Block]) : Block`  
   Create a control flow starting with an `IIf` block.
@@ -397,21 +401,23 @@ message bus and [pubnub](http://www.pubnub.com/).
 The function `Babbler.connect(bus)` accepts a message bus interface. This
 interface must be an Object with the following functions:
 
-- `connect(params: {id: string, message: function, connect: function}) : string`  
-  The function connect will be called by the Babbler with an object having the 
-  following parameters: 
+- `connect(params: Object) : string`  
+  The function `connect` will be called by the Babbler with an object having 
+  the following parameters: 
   - `id` the id of the babbler itself.
-  - `message` the callback function to deliver messages for this peer.
+  - `message` the callback function to deliver messages for this babbler.
     This function must be invoked as `message(msg : *)`.
   - `callback` an optional callback function which is invoked when the 
     connection is established.
-  
+  The `connect` function must return a token which can be used to disconnect
+  again.
+
 - `disconnect(token: string)`  
   Disconnect from a message bus. `token` is the token returned by the `connect`
   function.
   
 - `send(id: string, message: *)`
-   Send a message to a peer.
+   Send a message to a babbler.
 
 ### Protocol
 
@@ -466,10 +472,8 @@ Then, the tests can be executed:
     npm test
 
 
-# To do
+# Roadmap
 
 - Implement error handling and timeout conditions.
-- Implement support for returning promises from callbacks, allowing async 
-  callback functions.
 - Store message history in the context.
 - Implement conversations with multiple peers at the same time.

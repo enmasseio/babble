@@ -56,24 +56,40 @@ describe('Decision', function() {
     assert.throws(function () { Decision('no function', {}) }, SyntaxError);
   });
 
-  it('should throw an error when decision function returns a non existing id', function () {
-    assert.throws(function () {
-      Decision(function () {
-        return 'non existing id'
-      }, {
-        yes: new Block(),
-        no: new Block()
-      })
-    }, Error);
+  it('should throw an error when no matching choice', function () {
+    var decision = new Decision(function () {
+      return 'non existing id'
+    }, {
+      yes: new Block(),
+      no: new Block()
+    });
+
+    var conversation = new Conversation();
+    return decision.execute(conversation)
+        .then(function (next) {
+          assert.ok(false, 'should not succeed')
+        })
+        .catch(function (err) {
+          assert.equal(err.toString(), 'Error: Block with id "non existing id" not found');
+        })
   });
 
-  it('should throw an error when decision function doesn\'t return a string', function () {
-    assert.throws(function () {
-      var decision = new Decision(function () {
-        return 123
-      }, {});
-      decision.execute();
-    }, TypeError);
+  it('should fallback to default when no matching choice', function () {
+    var def = new Block();
+    var decision = new Decision(function () {
+      return 'non existing id'
+    }, {
+      yes: new Block(),
+      no: new Block(),
+      'default': def
+    });
+
+    var conversation = new Conversation();
+    return decision.execute(conversation)
+        .then(function (next) {
+          assert.strictEqual(next.result, undefined);
+          assert.strictEqual(next.block, def);
+        });
   });
 
   it('should execute a decision without decision function', function () {

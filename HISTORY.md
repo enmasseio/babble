@@ -4,6 +4,7 @@ https://github.com/enmasseio/babble
 
 ## not yet released, version 0.8.1
 
+- Implemented `'default'` choice in `Decision`.
 - Some code simplifications.
 - Renamed `messagers` to `messagebus`.
 - Documented message bus interface and protocol.
