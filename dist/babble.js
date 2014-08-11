@@ -9,7 +9,7 @@ module.exports = require('./lib/babble');
 var uuid = require('node-uuid');
 var Promise = require('es6-promise').Promise;
 
-var messagers = require('./messagers');
+var messagebus = require('./messagebus');
 var Conversation = require('./Conversation');
 var Block = require('./block/Block');
 var Then = require('./block/Then');
@@ -40,41 +40,41 @@ function Babbler (id) {
 }
 
 /**
- * Connect to a messaging system
- * @param {{connect: function, disconnect: function, send: function}} [messager]
+ * Connect to a message bus
+ * @param {{connect: function, disconnect: function, send: function}} [bus]
  *          A messaging interface. Must have the following functions:
  *          - connect(params: {id: string,
- *            message: function, connect: function}) : string
+ *            message: function, callback: function}) : string
  *            must return a token to disconnects again.
- *            parameter connect is optional.
+ *            parameter callback is optional.
  *          - disconnect(token: string)
- *            disconnect from a messager.
+ *            disconnect from a message bus.
  *          - send(id: string, message: *)
  *            send a message
- *          A number of interfaces is provided under babble.messagers.
- *          Default interface is babble.messagers['default']
+ *          A number of interfaces is provided under babble.messagebus.
+ *          Default interface is babble.messagebus['default']
  * @return {Promise.<Babbler>}  Returns a Promise which resolves when the
  *                              babbler is connected.
  */
-Babbler.prototype.connect = function (messager) {
+Babbler.prototype.connect = function (bus) {
   // disconnect (in case we are already connected)
   this.disconnect();
 
-  if (!messager) {
-    messager = messagers['default']();
+  if (!bus) {
+    bus = messagebus['default']();
   }
 
-  // validate the messagers fucntions
-  if (typeof messager.connect !== 'function') {
-    throw new Error('messager must contain a function ' +
+  // validate the message bus functions
+  if (typeof bus.connect !== 'function') {
+    throw new Error('message bus must contain a function ' +
         'connect(params: {id: string, callback: function}) : string');
   }
-  if (typeof messager.disconnect !== 'function') {
-    throw new Error('messager must contain a function ' +
+  if (typeof bus.disconnect !== 'function') {
+    throw new Error('message bus must contain a function ' +
         'disconnect(token: string)');
   }
-  if (typeof messager.send !== 'function') {
-    throw new Error('messager must contain a function ' +
+  if (typeof bus.send !== 'function') {
+    throw new Error('message bus must contain a function ' +
         'send(params: {id: string, message: *})');
   }
 
@@ -86,17 +86,17 @@ Babbler.prototype.connect = function (messager) {
     _resolve = resolve;
   });
 
-  var token = messager.connect({
+  var token = bus.connect({
     id: this.id,
     message: this._onMessage.bind(this),
-    connect: _resolve
+    callback: _resolve
   });
 
   // link functions to disconnect and send
   this.disconnect = function () {
-    messager.disconnect(token);
+    bus.disconnect(token);
   };
-  this.send = messager.send;
+  this.send = bus.send;
 
   // return a promise
   return connected;
@@ -308,7 +308,7 @@ Babbler.prototype._process = function (block, conversation) {
 
 module.exports = Babbler;
 
-},{"./Conversation":3,"./block/Block":5,"./block/IIf":7,"./block/Listen":8,"./block/Tell":9,"./block/Then":10,"./messagers":11,"es6-promise":33,"node-uuid":43}],3:[function(require,module,exports){
+},{"./Conversation":3,"./block/Block":5,"./block/IIf":7,"./block/Listen":8,"./block/Tell":9,"./block/Then":10,"./messagebus":11,"es6-promise":33,"node-uuid":43}],3:[function(require,module,exports){
 var uuid = require('node-uuid');
 var Promise = require('es6-promise').Promise;
 
@@ -444,7 +444,6 @@ exports.ask = function (message, callback) {
 
 /**
  * Create a decision block and chain it to the current block.
- * Returns the first block in the chain.
  *
  * Syntax:
  *
@@ -561,8 +560,8 @@ exports.block = {
   Tell: require('./block/Tell')
 };
 
-// export messaging interfaces
-exports.messagers = require('./messagers');
+// export messagebus interfaces
+exports.messagebus = require('./messagebus');
 
 /**
  * Babblify an actor. The babblified actor will be extended with functions
@@ -677,7 +676,7 @@ exports.unbabblify = function (actor) {
   return actor;
 };
 
-},{"./Babbler":2,"./block/Block":5,"./block/Decision":6,"./block/IIf":7,"./block/Listen":8,"./block/Tell":9,"./block/Then":10,"./messagers":11}],5:[function(require,module,exports){
+},{"./Babbler":2,"./block/Block":5,"./block/Decision":6,"./block/IIf":7,"./block/Listen":8,"./block/Tell":9,"./block/Then":10,"./messagebus":11}],5:[function(require,module,exports){
 'use strict';
 
 /**
@@ -787,6 +786,7 @@ function Decision (arg1, arg2) {
 }
 
 Decision.prototype = Object.create(Block.prototype);
+Decision.prototype.constructor = Decision;
 
 /**
  * Execute the block
@@ -814,7 +814,9 @@ Decision.prototype.execute = function (conversation, message) {
 };
 
 /**
- * Add a choice to the decision block
+ * Add a choice to the decision block.
+ * The choice can be a new chain of blocks. The first block of the chain
+ * will be triggered when the this id comes out of the decision function.
  * @param {String} id
  * @param {Block} block
  * @return {Decision} self
@@ -832,7 +834,13 @@ Decision.prototype.addChoice = function (id, block) {
     throw new Error('Choice with id "' + id + '" already exists');
   }
 
-  this.choices[id] = block;
+  // find the first block of the chain
+  var first = block;
+  while (first && first.previous) {
+    first = first.previous;
+  }
+
+  this.choices[id] = first;
 
   return this;
 };
@@ -1006,7 +1014,7 @@ IIf.prototype.execute = function (conversation, message) {
  *                                            the input.
  * @param {Block} [trueBlock]
  * @param {Block} [falseBlock]
- * @returns {Block}
+ * @returns {Block} Returns the created IIf block
  */
 Block.prototype.iif = function (condition, trueBlock, falseBlock) {
   var iif = new IIf(condition, trueBlock, falseBlock);
@@ -1061,14 +1069,13 @@ Listen.prototype.execute = function (conversation, message) {
 
 /**
  * Create a Listen block and chain it to the current block
- * Returns the first block in the chain.
  *
  * Optionally a callback function can be provided, which is equivalent of
  * doing `listen().then(callback)`.
  *
  * @param {Function} [callback] Executed as callback(message: *, context: Object)
  *                              Must return a result
- * @return {Block} first        First block in the chain
+ * @return {Block}              Returns the appended block
  */
 Block.prototype.listen = function (callback) {
   var listen = new Listen();
@@ -1150,7 +1157,6 @@ Tell.prototype.execute = function (conversation, message) {
 
 /**
  * Create a Tell block and chain it to the current block
- * Returns the first block in the chain.
  * @param {* | Function} [message] A static message or callback function
  *                                 returning a message dynamically.
  *                                 When `message` is a function, it will be
@@ -1159,7 +1165,7 @@ Tell.prototype.execute = function (conversation, message) {
  *                                 previous block in the chain, and `context` is
  *                                 an object where state can be stored during a
  *                                 conversation.
- * @return {Block} first        First block in the chain
+ * @return {Block}                 Returns the appended block
  */
 Block.prototype.tell = function (message) {
   var block = new Tell(message);
@@ -1177,7 +1183,7 @@ Block.prototype.tell = function (message) {
  *                              and `context` is an object where state can be
  *                              stored during a conversation. This is equivalent
  *                              of doing `listen().then(callback)`
- * @return {Block} block        Last block in the created control flow
+ * @return {Block}              Returns the appended block
  */
 Block.prototype.ask = function (message, callback) {
   // FIXME: this doesn't work
@@ -1241,16 +1247,15 @@ Then.prototype.execute = function (conversation, message) {
 };
 
 /**
- * Chain a block to the current block. The new block is appended to the *last*
- * block in the chain, and the function returns the *first* block in the chain.
+ * Chain a block to the current block.
  *
  * When a function is provided, a Then block will be generated which
  * executes the function. The function is invoked as callback(message, context),
  * where `message` is the output from the previous block in the chain,
  * and `context` is an object where state can be stored during a conversation.
  *
- * @param {Block | function} next
- * @return {Block} first  First block in the chain
+ * @param {Block | function} next   A callback function or Block.
+ * @return {Block} Returns the appended block
  */
 Block.prototype.then = function (next) {
   // turn a callback function into a Then block
@@ -1262,24 +1267,12 @@ Block.prototype.then = function (next) {
     throw new TypeError('Parameter next must be a Block or function');
   }
 
-  // find the last block in the chain
-  var last = this;
-  while (last.next) {
-    last = last.next;
-  }
-
-  // find the first block in the chain.
-  var first = this;
-  while (first.previous) {
-    first = first.previous;
-  }
-
   // append after the last block
   next.previous = this;
-  last.next = next;
+  this.next = next;
 
-  // return the first block
-  return first;
+  // return the appended block
+  return next;
 };
 
 module.exports = Then;
@@ -1304,8 +1297,8 @@ exports['pubsub-js'] = function () {
         params.message(message);
       });
 
-      if (typeof params.connect === 'function') {
-        params.connect();
+      if (typeof params.callback === 'function') {
+        params.callback();
       }
 
       return token;
@@ -1347,7 +1340,7 @@ exports['pubnub'] = function (params) {
       pubnub.subscribe({
         channel: params.id,
         message: params.message,
-        connect: params.connect
+        connect: params.callback
       });
 
       return params.id;

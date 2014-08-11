@@ -2,7 +2,7 @@ var babble = require('../index');
 var Promise = require('es6-promise').Promise;
 
 // initialize pubnub messaging
-var pubnub = babble.messagers.pubnub({
+var pubnub = babble.messagebus.pubnub({
   publish_key: 'demo',    // REPLACE THIS WITH YOUR PUBNUB PUBLISH KEY
   subscribe_key: 'demo'   // REPLACE THIS WITH YOUR PUBNUB SUBSCRIBE KEY
 });

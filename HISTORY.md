@@ -5,6 +5,8 @@ https://github.com/enmasseio/babble
 ## not yet released, version 0.8.1
 
 - Some code simplifications.
+- Renamed `messagers` to `messagebus`.
+- Documented message bus interface and protocol.
 
 
 ## 2014-08-07, version 0.8.0
