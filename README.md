@@ -326,7 +326,7 @@ A babbler has the following functions:
   The connect function returns a promise which resolves with the babbler itself
   when the connection is ready.
   
-  See section [Message bus](#message_bus) for documentation on the interface
+  See section [Message bus](#message-bus) for documentation on the interface
   of a message bus.
 
 - `disconnect()`  
