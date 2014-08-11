@@ -416,7 +416,7 @@ interface must be an Object with the following functions:
   Disconnect from a message bus. `token` is the token returned by the `connect`
   function.
   
-- `send(id: string, message: *)`
+- `send(id: string, message: *)`  
    Send a message to a babbler.
 
 ### Protocol
