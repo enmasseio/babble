@@ -2,6 +2,11 @@
 https://github.com/enmasseio/babble
 
 
+## not yet released, version 0.10.0
+
+- Implemented function `Babbler.listenOnce`.
+
+
 ## 2014-08-11, version 0.9.0
 
 - Implemented `'default'` choice in `Decision`.

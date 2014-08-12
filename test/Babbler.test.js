@@ -43,10 +43,43 @@ describe('Babbler', function() {
 
   describe ('listen', function () {
 
-    it ('should listen to a message', function () {
-      emma.listen('test');
+    it ('should listen to a message', function (done) {
+      emma.listen('test', function (response) {
+        assert.equal(response, 'test');
+        assert.equal(Object.keys(emma.listeners).length, 1);
+        done();
+      });
 
       assert.equal(Object.keys(emma.listeners).length, 1);
+
+      emma._onMessage({
+        id: '1',
+        from: 'jack',
+        to: 'emma',
+        message: 'test'
+      });
+    });
+
+    it ('should listen to a message once', function (done) {
+      emma.listenOnce('test', function (response) {
+        try {
+          assert.equal(response, 'test');
+          assert.equal(Object.keys(emma.listeners).length, 0);
+          done();
+        }
+        catch(err) {
+          done(err);
+        }
+      });
+
+      assert.equal(Object.keys(emma.listeners).length, 1);
+
+      emma._onMessage({
+        id: '1',
+        from: 'jack',
+        to: 'emma',
+        message: 'test'
+      });
     });
 
   });
