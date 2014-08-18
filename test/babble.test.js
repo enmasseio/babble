@@ -63,9 +63,9 @@ describe('babble', function() {
       if (!actor) {
         throw new Error('Not found');
       }
-      actor.onMessage(this.id, message);
+      actor.receive(this.id, message);
     };
-    Actor.prototype.onMessage = function (from, message) {
+    Actor.prototype.receive = function (from, message) {
       // ... to be overwritten by the actor
     };
 
@@ -116,8 +116,8 @@ describe('babble', function() {
         // ... to be overwritten by the actor
       };
 
-      var actor1 = babble.babblify(new Actor2('actor1'), {send: 'sendIt', onMessage: 'receiveIt'});
-      var actor2 = babble.babblify(new Actor2('actor2'), {send: 'sendIt', onMessage: 'receiveIt'});
+      var actor1 = babble.babblify(new Actor2('actor1'), {send: 'sendIt', receive: 'receiveIt'});
+      var actor2 = babble.babblify(new Actor2('actor2'), {send: 'sendIt', receive: 'receiveIt'});
 
       actor1.listen('test')
           .tell(function () {

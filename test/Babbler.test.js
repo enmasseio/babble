@@ -52,7 +52,7 @@ describe('Babbler', function() {
 
       assert.equal(Object.keys(emma.listeners).length, 1);
 
-      emma._onMessage({
+      emma._receive({
         id: '1',
         from: 'jack',
         to: 'emma',
@@ -74,7 +74,7 @@ describe('Babbler', function() {
 
       assert.equal(Object.keys(emma.listeners).length, 1);
 
-      emma._onMessage({
+      emma._receive({
         id: '1',
         from: 'jack',
         to: 'emma',

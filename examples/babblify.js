@@ -18,10 +18,10 @@ Actor.prototype.send = function (to, message) {
   if (!actor) {
     throw new Error('Not found');
   }
-  actor.onMessage(this.id, message);
+  actor.receive(this.id, message);
 };
 
-Actor.prototype.onMessage = function (from, message) {
+Actor.prototype.receive = function (from, message) {
   // ... to be overwritten by the actor
 };
 
@@ -36,7 +36,7 @@ Actor.prototype.onMessage = function (from, message) {
 var emma = new Actor('emma');
 var jack = new Actor('jack');
 
-emma.onMessage = function (from, message) {
+emma.receive = function (from, message) {
   console.log('Received a message from ' + from + ': "' + message + '"')
 };
 

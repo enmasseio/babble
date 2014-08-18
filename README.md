@@ -207,16 +207,16 @@ Babble has the following factory functions:
   `ask`, `tell`, and `listen`.
  
   Babble expects that messages sent via `actor.send(to, message)` will be 
-  delivered by the recipient on a function `actor.onMessage(from, message)`.
-  Babble replaces the original `onMessage` with a new one, which is used to
+  delivered by the recipient on a function `actor.receive(from, message)`.
+  Babble replaces the original `receive` with a new one, which is used to
   listen for all incoming messages. Messages ignored by babble are propagated
-  to the original `onMessage` function.
+  to the original `receive` function.
  
   The function accepts the following parameters:
   
   - `actor: Object`  
     The actor to be babblified. Must be an Object containing functions 
-    `send(to, message)` and `onMessage(from, message)`.
+    `send(to, message)` and `receive(from, message)`.
   - `[params: Object]`  
     Optional parameters. Can contain properties:
     
@@ -224,8 +224,8 @@ Babble has the following factory functions:
         The id for the babbler
       - `send: string`
         The name of an alternative send function available on the actor.
-      - `onMessage: string`
-        The name of an alternative onMessage function available on the actor.
+      - `receive: string`
+        The name of an alternative receive function available on the actor.
 
   The function returns the babblified actor. A babblified actor can be restored 
   in its original state using `unbabblify(actor)`.
