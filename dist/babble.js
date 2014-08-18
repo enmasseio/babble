@@ -88,7 +88,7 @@ Babbler.prototype.connect = function (bus) {
 
   var token = bus.connect({
     id: this.id,
-    message: this._onMessage.bind(this),
+    message: this._receive.bind(this),
     callback: _resolve
   });
 
@@ -107,13 +107,13 @@ Babbler.prototype.connect = function (bus) {
  * @param {{id: string, from: string, to: string, message: string}} envelope
  * @private
  */
-Babbler.prototype._onMessage = function (envelope) {
+Babbler.prototype._receive = function (envelope) {
   // ignore when envelope does not contain an id and message
   if (!envelope || !('id' in envelope) || !('message' in envelope)) {
     return;
   }
 
-  // console.log('_onMessage', envelope) // TODO: cleanup
+  // console.log('_receive', envelope) // TODO: cleanup
 
   var me = this;
   var id = envelope.id;
@@ -206,11 +206,55 @@ Babbler.prototype.listen = function (condition, callback) {
 
   var block = listen;
   if (condition) {
-    block = listen.iif(condition);
+    block = block.iif(condition);
   }
   if (callback) {
-    block = listen.then(callback);
+    block = block.then(callback);
   }
+  return block;
+};
+
+/**
+ * Listen for a specific event, and execute the flow once.
+ *
+ * Providing a condition will only start the flow when condition is met,
+ * this is equivalent of doing `listen().iif(condition)`
+ *
+ * Providing a callback function is equivalent of doing either
+ * `listen(message).then(callback)` or `listen().iif(message).then(callback)`.
+ *
+ * @param {function | RegExp | String | *} [condition]
+ * @param {Function} [callback] Invoked as callback(message, context),
+ *                              where `message` is the just received message,
+ *                              and `context` is an object where state can be
+ *                              stored during a conversation. This is equivalent
+ *                              of doing `listen().then(callback)`
+ * @return {Block} block        Start block of a control flow.
+ */
+Babbler.prototype.listenOnce = function (condition, callback) {
+  var listen = new Listen();
+  this.listeners.push(listen);
+
+  var me = this;
+  var block = listen;
+
+  if (condition) {
+    block = block.iif(condition);
+  }
+
+  block = block.then(function (message) {
+    // remove the flow from the listeners after fired once
+    var index = me.listeners.indexOf(listen);
+    if (index !== -1) {
+      me.listeners.splice(index, 1);
+    }
+    return message;
+  });
+
+  if (callback) {
+    block = block.then(callback);
+  }
+
   return block;
 };
 
@@ -572,23 +616,23 @@ exports.messagebus = require('./messagebus');
  * `ask`, `tell`, and `listen`.
  *
  * Babble expects that messages sent via `actor.send(to, message)` will be
- * delivered by the recipient on a function `actor.onMessage(from, message)`.
- * Babble replaces the original `onMessage` with a new one, which is used to
+ * delivered by the recipient on a function `actor.receive(from, message)`.
+ * Babble replaces the original `receive` with a new one, which is used to
  * listen for all incoming messages. Messages ignored by babble are propagated
- * to the original `onMessage` function.
+ * to the original `receive` function.
  *
  * The actor can be restored in its original state using `unbabblify(actor)`.
  *
  * @param {Object} actor      The actor to be babblified. Must be an object
  *                            containing functions `send(to, message)` and
- *                            `onMessage(from, message)`.
+ *                            `receive(from, message)`.
  * @param {Object} [params]   Optional parameters. Can contain properties:
  *                            - id: string        The id for the babbler
  *                            - send: string      The name of an alternative
  *                                                send function available on
  *                                                the actor.
- *                            - onMessage: string The name of an alternative
- *                                                onMessage function available
+ *                            - receive: string The name of an alternative
+ *                                                receive function available
  *                                                on the actor.
  * @returns {Object}          Returns the babblified actor.
  */
@@ -621,18 +665,18 @@ exports.babblify = function (actor, params) {
   // create a new babbler
   var babbler = exports.babbler(babblerId);
 
-  // attach onMessage function to the babbler
-  var onMessageName = params && params.onMessage || 'onMessage';
-  var onMessageOriginal = actor.hasOwnProperty(onMessageName) ? actor[onMessageName] : null;
-  if (onMessageOriginal) {
-    actor[onMessageName] = function (from, message) {
-      babbler._onMessage(message);
-      onMessageOriginal.call(actor, from, message);
+  // attach receive function to the babbler
+  var receiveName = params && params.receive || 'receive';
+  var receiveOriginal = actor.hasOwnProperty(receiveName) ? actor[receiveName] : null;
+  if (receiveOriginal) {
+    actor[receiveName] = function (from, message) {
+      babbler._receive(message);
+      receiveOriginal.call(actor, from, message);
     };
   }
   else {
-    actor[onMessageName] = function (from, message) {
-      babbler._onMessage(message);
+    actor[receiveName] = function (from, message) {
+      babbler._receive(message);
     };
   }
 
@@ -647,12 +691,13 @@ exports.babblify = function (actor, params) {
   // attach babbler functions and properties to the actor
   actor.__babbler__ = {
     babbler: babbler,
-    onMessage: onMessageOriginal,
-    onMessageName: onMessageName
+    receive: receiveOriginal,
+    receiveName: receiveName
   };
   actor.ask = babbler.ask.bind(babbler);
   actor.tell = babbler.tell.bind(babbler);
   actor.listen = babbler.listen.bind(babbler);
+  actor.listenOnce = babbler.listenOnce.bind(babbler);
 
   return actor;
 };
@@ -669,11 +714,12 @@ exports.unbabblify = function (actor) {
     delete actor.ask;
     delete actor.tell;
     delete actor.listen;
-    delete actor[__babbler__.onMessageName];
+    delete actor.listenOnce;
+    delete actor[__babbler__.receiveName];
 
-    // restore any original onMessage method
-    if (__babbler__.onMessage) {
-      actor[__babbler__.onMessageName] = __babbler__.onMessage;
+    // restore any original receive method
+    if (__babbler__.receive) {
+      actor[__babbler__.receiveName] = __babbler__.receive;
     }
   }
 

@@ -2,7 +2,7 @@
 https://github.com/enmasseio/babble
 
 
-## not yet released, version 0.10.0
+## 2014-08-18, version 0.10.0
 
 - Implemented function `Babbler.listenOnce`.
 - Renamed default message listener for babblify from `onMessage` to `receive`.

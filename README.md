@@ -204,7 +204,7 @@ Babble has the following factory functions:
 
 - `babble.babblify(actor: Object, params: Object) : Object`  
   Babblify an actor. The babblified actor will be extended with functions
-  `ask`, `tell`, and `listen`.
+  `ask`, `tell`, `listen`, and `listenOnce`.
  
   Babble expects that messages sent via `actor.send(to, message)` will be 
   delivered by the recipient on a function `actor.receive(from, message)`.
@@ -344,6 +344,11 @@ A babbler has the following functions:
   The callback is invoked as `callback(message, context)`, and must return
   either a result or a Promise resolving with a result. The result will be 
   passed to the next block in the chain.
+
+- `listenOnce([condition: Function | RegExp | * [, callback: Function]]) : Block`  
+  Equal to `listen`, except that the listener is removed as soon as a message
+  is received matching listeners condition, i.e. the listener is executed only
+  once.
 
 - `send(to: String, message: *)`  
   Send a message to another peer.
