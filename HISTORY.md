@@ -4,7 +4,7 @@ https://github.com/enmasseio/babble
 
 ## not yet released, version 0.11.0
 
-- Replaced `instanceof` checks with `object.isMyClass` checks.
+- Replaced `instanceof MyClass` checks with `object.isMyClass` checks.
 
 
 ## 2014-08-18, version 0.10.0
