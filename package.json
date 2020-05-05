@@ -16,7 +16,8 @@
     "es6-promise": "^3.1.2",
     "node-uuid": "~1.4.7",
     "pubnub": "~3.9.2",
-    "pubsub-js": "~1.5.3"
+    "pubsub-js": "~1.5.3",
+    "snyk": "^1.317.0"
   },
   "devDependencies": {
     "mocha": "latest",
@@ -25,7 +26,10 @@
   },
   "scripts": {
     "build": "browserify ./index.js -o ./dist/babble.js -s babble -x pubnub; uglifyjs ./dist/babble.js --output ./dist/babble.min.js --source-map ./dist/babble.map --source-map-url ./babble.min.map --compress --mangle --comments",
-    "test": "mocha test --recursive --reporter spec"
+    "test": "mocha test --recursive --reporter spec",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
-  "main": "./index.js"
+  "main": "./index.js",
+  "snyk": true
 }
